@@ -58,3 +58,26 @@ export interface ApiStatus {
   chunks: number;
   message?: string;
 }
+
+// ── LLD / OOP theory reference (Theory tab inside Object Oriented Design) ───
+
+export interface TheoryTopic {
+  id: string;
+  title: string;
+  oneLiner: string;
+  content: string;      // markdown prose — headers, bold, lists, tables. No backtick code spans/fences.
+  code?: string;        // optional C++ snippet or plain-text/ASCII diagram, rendered in a code panel
+  codeLabel?: string;   // small filename/label shown above the code panel, e.g. "singleton.cpp"
+}
+
+export interface TheoryCategory {
+  id: string;
+  label: string;
+  icon: string;          // Lucide icon name
+  sub: string;
+  color: string;
+  bg: string;
+  border: string;
+  hex: string;
+  topics: TheoryTopic[];
+}

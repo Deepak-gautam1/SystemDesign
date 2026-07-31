@@ -4,29 +4,15 @@ import { Header }          from "@/components/layout/header";
 import { Sidebar }         from "@/components/layout/sidebar";
 import { CategorySection } from "@/components/dashboard/category-section";
 import { SetupBanner }     from "@/components/dashboard/setup-banner";
+import { DashboardHome }   from "@/components/dashboard/dashboard-home";
 import { ChatInterface }   from "@/components/chat/chat-interface";
 import { OODSection }      from "@/components/ood/ood-section";
+import { ProgressRing }    from "@/components/ui/progress-ring";
 import { useProgress }     from "@/hooks/use-progress";
+import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
+import { useRecentTopics } from "@/hooks/use-recent-topics";
 import { CATEGORIES, TOPICS, getCategoryById } from "@/lib/topics";
 import type { AppSection, Mode, Topic } from "@/lib/types";
-
-function ProgressRing({ done, total }: { done: number; total: number }) {
-  const r = 26, circ = 2 * Math.PI * r, pct = total ? done / total : 0;
-  return (
-    <div className="relative w-16 h-16 flex items-center justify-center">
-      <svg width="64" height="64" viewBox="0 0 64 64" className="-rotate-90">
-        <circle cx="32" cy="32" r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="4.5" />
-        <circle cx="32" cy="32" r={r} fill="none" stroke="hsl(var(--primary))" strokeWidth="4.5"
-          strokeDasharray={`${circ * pct} ${circ}`} strokeLinecap="round"
-          style={{ transition: "stroke-dasharray .6s ease" }} />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-display font-bold text-sm text-foreground leading-none">{Math.round(pct * 100)}%</span>
-        <span className="font-mono text-[9px] text-muted-foreground mt-0.5">done</span>
-      </div>
-    </div>
-  );
-}
 
 export default function HomePage() {
   const [section, setSection]     = useState<AppSection>("system-design");
@@ -35,6 +21,13 @@ export default function HomePage() {
   const [chatTopic, setChatTopic] = useState<Topic | null>(null);
 
   const { progress, markDone, isDone, doneCount } = useProgress();
+  const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useSidebarCollapsed();
+  const { recentIds, addRecent } = useRecentTopics();
+
+  const recentTopics = useMemo(
+    () => recentIds.map(id => TOPICS.find(t => t.id === id)).filter((t): t is Topic => !!t),
+    [recentIds]
+  );
 
   const filteredTopics = useMemo(() => {
     if (!search.trim()) return TOPICS;
@@ -50,6 +43,7 @@ export default function HomePage() {
     setChatTopic(topic);
     if (selectedMode) setMode(selectedMode);
     setSection("system-design");
+    addRecent(topic.id);
   };
 
   const goBack = () => setChatTopic(null);
@@ -83,6 +77,8 @@ export default function HomePage() {
           progress={progress}
           mode={mode}
           onTopicSelect={openChat}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={toggleSidebar}
         />
 
         <main className="flex-1 min-w-0 overflow-hidden flex flex-col">
@@ -147,9 +143,16 @@ export default function HomePage() {
 
           {/* ── Dashboard overview ───────────────────────────────────── */}
           {section === "dashboard" && (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-              Dashboard overview — coming soon
-            </div>
+            <DashboardHome
+              doneCount={doneCount}
+              totalTopics={TOPICS.length}
+              categories={CATEGORIES}
+              topics={TOPICS}
+              progress={progress}
+              recentTopics={recentTopics}
+              onSelectTopic={openChat}
+              onNavigateSection={handleSectionChange}
+            />
           )}
 
         </main>

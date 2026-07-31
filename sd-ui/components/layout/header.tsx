@@ -1,6 +1,8 @@
 "use client";
-import Link from "next/link";
-import { Search, BookOpen, Target, Microscope, ChevronRight } from "lucide-react";
+import {
+  Search, BookOpen, Target, Microscope, ChevronRight,
+  LayoutDashboard, Building2, Code2, GitBranch,
+} from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { AppSection, Mode, Topic } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -18,11 +20,14 @@ const MODE_ACTIVE: Record<Mode, string> = {
   deep_dive: "bg-violet-500/12 text-violet-600 dark:text-violet-400 ring-1 ring-violet-500/30",
 };
 
-const SECTION_LABELS: Partial<Record<AppSection, string>> = {
-  "system-design": "System Design",
-  "ood":           "Object Oriented Design",
-  "dashboard":     "Dashboard",
-  "dsa":           "DS & Algorithms",
+// Single source of truth for "what page am I on" — icon, label, accent color
+const SECTION_META: Record<AppSection, { label: string; Icon: React.ComponentType<{ size?: number; className?: string }>; color: string }> = {
+  "dashboard":     { label: "Dashboard",              Icon: LayoutDashboard, color: "text-foreground" },
+  "system-design": { label: "System Design",          Icon: Building2,       color: "text-primary" },
+  "ood":           { label: "Object Oriented Design", Icon: Code2,           color: "text-violet-500 dark:text-violet-400" },
+  "dsa":           { label: "DS & Algorithms",        Icon: GitBranch,       color: "text-amber-500 dark:text-amber-400" },
+  "practice":      { label: "Practice",               Icon: Target,          color: "text-muted-foreground" },
+  "guides":        { label: "Study Guides",           Icon: BookOpen,        color: "text-muted-foreground" },
 };
 
 interface HeaderProps {
@@ -43,6 +48,8 @@ export function Header({
   search, onSearchChange, showSearch,
 }: HeaderProps) {
   const inSystemDesign = section === "system-design";
+  const meta = SECTION_META[section];
+  const SectionIcon = meta.Icon;
 
   return (
     <header className={cn(
@@ -50,47 +57,21 @@ export function Header({
       "bg-card/80 backdrop-blur-md border-b border-border",
     )}>
 
-      {/* ── Brand ─────────────────────────────────────────────────────── */}
-      <Link href="/" className="flex items-center gap-2 shrink-0 select-none group">
-        {/* Gradient icon mark */}
-        <div className="w-7 h-7 rounded-[7px] bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <rect x="1" y="1" width="5" height="5" rx="1" fill="white" fillOpacity=".9"/>
-            <rect x="8" y="1" width="5" height="5" rx="1" fill="white" fillOpacity=".6"/>
-            <rect x="1" y="8" width="5" height="5" rx="1" fill="white" fillOpacity=".6"/>
-            <rect x="8" y="8" width="5" height="5" rx="1" fill="white" fillOpacity=".9"/>
-          </svg>
-        </div>
-
-        {/* Wordmark */}
-        <span className="font-display font-semibold text-[15px] tracking-tight">
-          <span className="text-foreground">arch</span>
-          <span className="text-primary font-bold">prep</span>
+      {/* ── Page title / breadcrumb — the one place "where am I" lives ── */}
+      <div className="flex items-center gap-2 min-w-0 shrink-0">
+        <SectionIcon size={15} className={cn("shrink-0", meta.color)} />
+        <span className={cn("text-[13px] font-semibold truncate", meta.color)}>
+          {meta.label}
         </span>
-      </Link>
-
-      {/* ── Breadcrumb (when in System Design or viewing a topic) ──────── */}
-      {(inSystemDesign || activeTopic) && (
-        <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
-          <div className="w-px h-3.5 bg-border mx-0.5" />
-          <span className="text-muted-foreground/70">System Design</span>
-          {activeTopic && (
-            <>
-              <ChevronRight size={11} className="text-muted-foreground/50 shrink-0" />
-              <span className="text-foreground/80 font-medium truncate max-w-[180px]">
-                {activeTopic.label}
-              </span>
-            </>
-          )}
-        </div>
-      )}
-
-      {section === "ood" && (
-        <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
-          <div className="w-px h-3.5 bg-border mx-0.5" />
-          <span className="text-violet-500 font-medium">Object Oriented Design</span>
-        </div>
-      )}
+        {activeTopic && (
+          <>
+            <ChevronRight size={12} className="text-muted-foreground/40 shrink-0" />
+            <span className="text-[13px] font-medium text-foreground/80 truncate max-w-[220px]">
+              {activeTopic.label}
+            </span>
+          </>
+        )}
+      </div>
 
       {/* ── Search (System Design dashboard only) ─────────────────────── */}
       {showSearch && (
@@ -130,23 +111,24 @@ export function Header({
         </div>
       )}
 
-      {/* ── Progress chip ──────────────────────────────────────────────── */}
-      <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/60 border border-border">
-        {/* Mini arc progress */}
-        <div className="relative w-5 h-5 flex items-center justify-center">
-          <svg width="20" height="20" viewBox="0 0 20 20" className="-rotate-90">
-            <circle cx="10" cy="10" r="7" fill="none" stroke="hsl(var(--muted-foreground)/0.2)" strokeWidth="2.5" />
-            <circle
-              cx="10" cy="10" r="7" fill="none"
-              stroke="hsl(var(--primary))" strokeWidth="2.5"
-              strokeDasharray={`${2 * Math.PI * 7 * (doneCount / total)} ${2 * Math.PI * 7}`}
-              strokeLinecap="round"
-            />
-          </svg>
+      {/* ── Progress chip — ONLY in System Design, where doneCount/total mean something ── */}
+      {inSystemDesign && (
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/60 border border-border">
+          <div className="relative w-5 h-5 flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 20 20" className="-rotate-90">
+              <circle cx="10" cy="10" r="7" fill="none" stroke="hsl(var(--muted-foreground)/0.2)" strokeWidth="2.5" />
+              <circle
+                cx="10" cy="10" r="7" fill="none"
+                stroke="hsl(var(--primary))" strokeWidth="2.5"
+                strokeDasharray={`${2 * Math.PI * 7 * (total ? doneCount / total : 0)} ${2 * Math.PI * 7}`}
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+          <span className="font-mono text-[11px] text-foreground font-medium">{doneCount}</span>
+          <span className="font-mono text-[11px] text-muted-foreground">/ {total}</span>
         </div>
-        <span className="font-mono text-[11px] text-foreground font-medium">{doneCount}</span>
-        <span className="font-mono text-[11px] text-muted-foreground">/ {total}</span>
-      </div>
+      )}
 
       {/* ── Theme toggle ───────────────────────────────────────────────── */}
       <ThemeToggle />
