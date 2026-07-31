@@ -17,8 +17,10 @@ dist/
 htmlcov/
 
 # Generated application data
-db/
+# db/ is intentionally committed — the deployed backend needs the built
+# vector DB and there's no persistent volume set up for it.
 embedding_cache.json
+embedding_cache.backup_corrupted.json
 github_repos/
 
 # Secrets and local environment overrides
