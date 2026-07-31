@@ -16,7 +16,14 @@ from google import genai
 import chromadb
 from dotenv import load_dotenv
 
-from config import DB_PATH, COLLECTION, TOP_K
+from config import (
+    DB_PATH, COLLECTION, TOP_K,
+    EMBED_BACKEND, COLLECTION_LOCAL, LOCAL_EMBED_MODEL,
+)
+
+# BGE retrieval models expect this instruction prefix on the *query* only —
+# passages are embedded as-is (see ingest_local.py). Improves recall notably.
+_LOCAL_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 
 load_dotenv()
 
@@ -104,7 +111,9 @@ APPROACH:
 
 class RAGEngine:
     """
-    Embedding:  Gemini (auto-discovers working model + API version)
+    Embedding:  Gemini (default) or a local sentence-transformers model
+                (EMBED_BACKEND=local in .env) — must match whichever
+                ingest script built the collection being queried.
     Generation: Groq primary → Gemini fallback
     """
 
@@ -128,50 +137,79 @@ class RAGEngine:
     # ── Init ───────────────────────────────────────────────────────────────────
 
     def __init__(self) -> None:
-        # ── 1. Gemini embeddings ──────────────────────────────────────────────
-        all_keys = self._load_all_keys()
-        if not all_keys:
-            raise RuntimeError("No GEMINI_API_KEY found. Copy .env.example → .env")
+        self.embed_backend = EMBED_BACKEND    # "gemini" (default) or "local"
 
         self._gemini:      genai.Client | None = None
         self._embed_model: str = ""
         self._gen_model:   str = ""     # best Gemini gen model found so far
+        self._local_model = None        # sentence-transformers model, if backend=="local"
 
-        for api_key in all_keys:
-            for api_version, model in _EMBED_CANDIDATES:
-                try:
-                    client = genai.Client(
-                        api_key=api_key,
-                        http_options={"api_version": api_version},
-                    )
-                    client.models.embed_content(model=model, contents="test")
-                    self._gemini      = client
-                    self._embed_model = model
+        all_keys = self._load_all_keys()
+
+        # ── 1. Embeddings ──────────────────────────────────────────────────────
+        if self.embed_backend == "local":
+            from sentence_transformers import SentenceTransformer
+            print(f"  🔢 Loading local embedding model '{LOCAL_EMBED_MODEL}'…")
+            self._local_model = SentenceTransformer(LOCAL_EMBED_MODEL)
+        else:
+            if not all_keys:
+                raise RuntimeError("No GEMINI_API_KEY found. Copy .env.example → .env")
+
+            for api_key in all_keys:
+                for api_version, model in _EMBED_CANDIDATES:
+                    try:
+                        client = genai.Client(
+                            api_key=api_key,
+                            http_options={"api_version": api_version},
+                        )
+                        client.models.embed_content(model=model, contents="test")
+                        self._gemini      = client
+                        self._embed_model = model
+                        break
+                    except Exception:
+                        continue
+                if self._gemini:
                     break
-                except Exception:
-                    continue
-            if self._gemini:
-                break
 
-        if not self._gemini:
-            raise RuntimeError(
-                "No working Gemini embedding model found.\n"
-                "Run  python diagnose.py  for details."
-            )
+            if not self._gemini:
+                raise RuntimeError(
+                    "No working Gemini embedding model found.\n"
+                    "Run  python diagnose.py  for details."
+                )
 
-        # Discover Gemini generation models (no test call — avoids quota waste)
-        try:
-            listed = {m.name.replace("models/", "") for m in self._gemini.models.list()}
-            self._gemini_gen = [m for m in _GEMINI_GEN_PRIORITY if m in listed]
-            for name in listed:
-                if (name not in self._gemini_gen
-                        and "gemini" in name
-                        and "embed" not in name
-                        and "imagen" not in name
-                        and "image" not in name):
-                    self._gemini_gen.append(name)
-        except Exception:
-            self._gemini_gen = list(_GEMINI_GEN_PRIORITY)
+        # ── 2. Gemini generation (fallback) ─────────────────────────────────────
+        # Independent of embed backend — Gemini can still serve as the
+        # generation fallback (behind Groq) even when embeddings are local.
+        if self._gemini is None and all_keys:
+            for api_key in all_keys:
+                for api_version, model in _EMBED_CANDIDATES:
+                    try:
+                        self._gemini = genai.Client(
+                            api_key=api_key,
+                            http_options={"api_version": api_version},
+                        )
+                        break
+                    except Exception:
+                        continue
+                if self._gemini:
+                    break
+
+        if self._gemini:
+            # Discover Gemini generation models (no test call — avoids quota waste)
+            try:
+                listed = {m.name.replace("models/", "") for m in self._gemini.models.list()}
+                self._gemini_gen = [m for m in _GEMINI_GEN_PRIORITY if m in listed]
+                for name in listed:
+                    if (name not in self._gemini_gen
+                            and "gemini" in name
+                            and "embed" not in name
+                            and "imagen" not in name
+                            and "image" not in name):
+                        self._gemini_gen.append(name)
+            except Exception:
+                self._gemini_gen = list(_GEMINI_GEN_PRIORITY)
+        else:
+            self._gemini_gen = []
 
         # ── 2. Groq (primary generation) ──────────────────────────────────────
         self._groq = None
@@ -197,13 +235,15 @@ class RAGEngine:
             print("  ℹ️  No GROQ_API_KEY — add one from console.groq.com for faster chat")
 
         # ── 3. Vector DB ───────────────────────────────────────────────────────
+        collection_name = COLLECTION_LOCAL if self.embed_backend == "local" else COLLECTION
         _db = chromadb.PersistentClient(path=DB_PATH)
-        self._coll = _db.get_collection(COLLECTION)
+        self._coll = _db.get_collection(collection_name)
 
-        gen_src = "Groq" if self._groq else "Gemini"
+        gen_src    = "Groq" if self._groq else ("Gemini" if self._gemini else "none")
+        embed_name = LOCAL_EMBED_MODEL if self.embed_backend == "local" else self._embed_model
         print(
             f"✅  RAG ready  "
-            f"(embed={self._embed_model}, gen={gen_src}, chunks={self._coll.count():,})"
+            f"(embed={embed_name}, gen={gen_src}, chunks={self._coll.count():,})"
         )
 
     # ── Public API ─────────────────────────────────────────────────────────────
@@ -214,10 +254,15 @@ class RAGEngine:
 
     def retrieve(self, query: str, k: int = TOP_K) -> list[dict]:
         """Embed the query and return the top-k most similar book chunks."""
-        result = self._gemini.models.embed_content(
-            model=self._embed_model, contents=query
-        )
-        q_emb = result.embeddings[0].values
+        if self.embed_backend == "local":
+            q_emb = self._local_model.encode(
+                _LOCAL_QUERY_PREFIX + query, normalize_embeddings=True
+            ).tolist()
+        else:
+            result = self._gemini.models.embed_content(
+                model=self._embed_model, contents=query
+            )
+            q_emb = result.embeddings[0].values
 
         res = self._coll.query(
             query_embeddings=[q_emb],

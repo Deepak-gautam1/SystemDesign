@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import {
   Building2, LayoutDashboard, Code2, GitBranch, Target, BookOpen,
   ChevronDown, PanelLeftClose, PanelLeftOpen,
@@ -51,6 +52,13 @@ export function Sidebar({
   collapsed, onToggleCollapsed,
 }: SidebarProps) {
   const isSdActive = section === "system-design";
+
+  // Tree expand/collapse is independent of navigation — opening the section
+  // auto-expands it, but the chevron can close it again without leaving the page.
+  const [sdExpanded, setSdExpanded] = useState(isSdActive);
+  useEffect(() => {
+    if (isSdActive) setSdExpanded(true);
+  }, [isSdActive]);
 
   return (
     <aside
@@ -128,17 +136,32 @@ export function Sidebar({
                     </span>
                   )}
                   {!collapsed && item.id === "system-design" && (
-                    <ChevronDown
-                      size={12}
-                      className={cn("text-muted-foreground transition-transform shrink-0", isSdActive && "rotate-180")}
-                    />
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label={sdExpanded ? "Collapse System Design topics" : "Expand System Design topics"}
+                      onClick={e => { e.stopPropagation(); setSdExpanded(v => !v); }}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSdExpanded(v => !v);
+                        }
+                      }}
+                      className="flex items-center justify-center w-5 h-5 -mr-1 rounded hover:bg-muted shrink-0"
+                    >
+                      <ChevronDown
+                        size={12}
+                        className={cn("text-muted-foreground transition-transform", sdExpanded && "rotate-180")}
+                      />
+                    </span>
                   )}
                 </button>
 
                 {collapsed && <RailTooltip label={item.soon ? `${item.label} · soon` : item.label} />}
 
                 {/* System Design: topic sub-list — only when expanded */}
-                {!collapsed && item.id === "system-design" && isSdActive && (
+                {!collapsed && item.id === "system-design" && sdExpanded && (
                   <div className="ml-3 border-l border-border pl-3 mb-1">
                     {CATEGORIES.map(cat => {
                       const catTopics = TOPICS.filter(t => t.cat === cat.id);

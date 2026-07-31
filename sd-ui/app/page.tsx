@@ -3,7 +3,6 @@ import { useState, useMemo } from "react";
 import { Header }          from "@/components/layout/header";
 import { Sidebar }         from "@/components/layout/sidebar";
 import { CategorySection } from "@/components/dashboard/category-section";
-import { SetupBanner }     from "@/components/dashboard/setup-banner";
 import { DashboardHome }   from "@/components/dashboard/dashboard-home";
 import { ChatInterface }   from "@/components/chat/chat-interface";
 import { OODSection }      from "@/components/ood/ood-section";
@@ -15,7 +14,7 @@ import { CATEGORIES, TOPICS, getCategoryById } from "@/lib/topics";
 import type { AppSection, Mode, Topic } from "@/lib/types";
 
 export default function HomePage() {
-  const [section, setSection]     = useState<AppSection>("system-design");
+  const [section, setSection]     = useState<AppSection>("dashboard");
   const [mode, setMode]           = useState<Mode>("study");
   const [search, setSearch]       = useState("");
   const [chatTopic, setChatTopic] = useState<Topic | null>(null);
@@ -122,8 +121,6 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
-
-                <SetupBanner />
 
                 <div className="flex flex-col gap-8">
                   {CATEGORIES.map(cat => (

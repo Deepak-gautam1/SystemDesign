@@ -356,33 +356,6 @@ function TopicCard({t,done,catColor,onStudy,onQuiz,onDeep}){
     </div>`;
 }
 
-/* ── SETUP BANNER ───────────────────────────────────────────────────────── */
-function SetupBanner(){
-  const steps=[
-    {lbl:'GitHub repos fetched',sub:'443 docs downloaded',done:true},
-    {lbl:'993 / 2,052 chunks cached',sub:'embedding_cache.json saved',done:true},
-    {lbl:'Resume after 11 AM Kuwait',sub:'python ingest.py',active:true},
-    {lbl:'Launch full app',sub:'python server.py',active:false},
-  ];
-  return html`
-    <div class="setup-pipe">
-      <div class="setup-pipe-top">
-        <div class="setup-pipe-icon"><i class="ti ti-clock-hour-3" aria-hidden="true"></i></div>
-        <div>
-          <div class="setup-pipe-title">Knowledge base building — chat live soon</div>
-          <div class="setup-pipe-sub">Gemini embedding quota (1,000/day) exhausted. Resets <strong>11:00 AM Kuwait time</strong> tomorrow — then runs automatically from chunk 993.</div>
-        </div>
-      </div>
-      <div class="setup-steps">
-        ${steps.map((s,i)=>html`
-          <div class=${'setup-step'+(s.done?' done':s.active?' active':'')} key=${i}>
-            <div class="sstep-num">${s.done?html`<i class="ti ti-check" style="font-size:10px" aria-hidden="true"></i>`:i+1}</div>
-            <div class="sstep-text"><strong>${s.lbl}</strong><br/>${s.sub}</div>
-          </div>`)}
-      </div>
-    </div>`;
-}
-
 /* ── DASHBOARD ──────────────────────────────────────────────────────────── */
 function Dashboard({progress,onSel,stats,search}){
   const done=Object.values(progress).filter(p=>p.done).length;
@@ -393,7 +366,6 @@ function Dashboard({progress,onSel,stats,search}){
 
   return html`
     <div class="dash">
-      ${notReady&&html`<${SetupBanner}/>`}
       <div class="hero">
         <div class="hero-left">
           <h1>System Design Interview Prep</h1>

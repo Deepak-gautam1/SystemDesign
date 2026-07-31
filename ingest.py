@@ -7,7 +7,7 @@ Features:
                   when one key's daily quota (1000/day) is exhausted
 """
 
-import os, sys, time, re, json
+import os, sys, time, re, json, hashlib
 import fitz
 from pathlib import Path
 from tqdm import tqdm
@@ -153,10 +153,11 @@ class KeyManager:
 
     def _rotate(self) -> bool:
         """Switch to the next non-exhausted key. Returns False if none left."""
+        old_idx = self._idx
         for i in range(len(self._clients)):
             if i not in self._exhausted:
                 self._idx = i
-                print(f"\n  🔄  Key #{self._idx + 1} was quota-exhausted — "
+                print(f"\n  🔄  Key #{old_idx + 1} was quota-exhausted — "
                       f"switched to key #{i + 1} ({self.active_model})")
                 return True
         return False
@@ -337,11 +338,16 @@ def main() -> None:
     print("\n✂️   Chunking…")
     texts, metas, ids = [], [], []
     for item in tqdm(all_pages, desc="  Chunking"):
+        source = item["source"]
+        prefix = source.replace(" ","_").replace("–","-").replace("/","_")[:20]
+        # Short prefixes collide across many distinct sources (e.g. hundreds of
+        # GitHub docs all truncate to the same 20 chars) — a hash of the full
+        # source name keeps ids unique without losing readability.
+        source_hash = hashlib.md5(source.encode("utf-8")).hexdigest()[:8]
         for j, chunk in enumerate(make_chunks(item["text"])):
-            prefix = item["source"].replace(" ","_").replace("–","-").replace("/","_")[:20]
             texts.append(chunk)
-            metas.append({"source": item["source"], "page": item["page"]})
-            ids.append(f"{prefix}_p{item['page']:04d}_c{j:03d}")
+            metas.append({"source": source, "page": item["page"]})
+            ids.append(f"{prefix}_{source_hash}_p{item['page']:04d}_c{j:03d}")
     print(f"  ✓  {len(texts):,} chunks total")
 
     # ── Embed (resumable + multi-key) ─────────────────────────────────────────
