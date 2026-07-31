@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SD Study Bot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+// Apply theme before paint — no flash
+(function(){const t=localStorage.getItem('sd_theme')||'dark';document.documentElement.dataset.theme=t;})();
+</script>
+<style>
+/* ── DESIGN TOKENS ─────────────────────────────────────────────────────── */
+:root {
+  --font-display:'Plus Jakarta Sans',system-ui,sans-serif;
+  --font-body:'Inter',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --r:8px; --r-lg:14px;
+  /* dark defaults */
+  --bg:#0B1120; --s1:#101828; --s2:#162032; --s3:#1C293E;
+  --bd:rgba(80,130,220,.13); --bd2:rgba(80,130,220,.24); --bd3:rgba(80,130,220,.38);
+  --tx:#DDE8F5; --tx2:#7A9EC4; --tx3:#3D5A7A;
+  --shadow:0 4px 16px rgba(0,0,0,.35); --shadow-sm:0 2px 8px rgba(0,0,0,.25);
+  /* category accents */
+  --cat-fund:#3473F5; --cat-stor:#10D9A4; --cat-core:#8B5CF6;
+  --cat-infra:#F59E0B; --cat-adv:#FF7844;
+  /* difficulty */
+  --easy:#3FB950; --easy-bg:rgba(63,185,80,.14);
+  --med:#F59E0B;  --med-bg:rgba(245,158,11,.14);
+  --hard:#EF4444; --hard-bg:rgba(239,68,68,.14);
+  /* mode */
+  --blue:#3473F5; --blue-bg:rgba(52,115,245,.14); --blue-bd:rgba(52,115,245,.35);
+  --orange:#F59E0B; --orange-bg:rgba(245,158,11,.14); --orange-bd:rgba(245,158,11,.35);
+  --purple:#8B5CF6; --purple-bg:rgba(139,92,246,.14); --purple-bd:rgba(139,92,246,.35);
+  --green:#10D9A4; --green-bg:rgba(16,217,164,.14); --green-bd:rgba(16,217,164,.35);
+  --red:#EF4444; --red-bg:rgba(239,68,68,.14); --red-bd:rgba(239,68,68,.35);
+}
+[data-theme="light"] {
+  --bg:#F0F5FF; --s1:#FFFFFF; --s2:#F4F8FF; --s3:#EBF1FF;
+  --bd:rgba(60,100,200,.12); --bd2:rgba(60,100,200,.22); --bd3:rgba(60,100,200,.38);
+  --tx:#0C1A2E; --tx2:#3D5A7A; --tx3:#7A9EC4;
+  --shadow:0 4px 16px rgba(40,80,160,.08); --shadow-sm:0 2px 8px rgba(40,80,160,.06);
+  --blue-bg:rgba(52,115,245,.08); --blue-bd:rgba(52,115,245,.3);
+  --easy-bg:rgba(63,185,80,.1); --med-bg:rgba(245,158,11,.1); --hard-bg:rgba(239,68,68,.1);
+}
+
+/* ── RESET ─────────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--tx);font-family:var(--font-body);font-size:14px;line-height:1.5;}
+body,div,aside,main,header,button,input,textarea{transition:background-color .22s ease,border-color .22s ease;}
+button{cursor:pointer;font-family:inherit;font-size:inherit;border:none;background:none;color:inherit;}
+input,textarea{font-family:inherit;font-size:inherit;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px;}
+
+/* ── APP SHELL ──────────────────────────────────────────────────────────── */
+#app{height:100%;display:flex;flex-direction:column;}
+.layout{display:flex;flex:1;overflow:hidden;}
+
+/* ── HEADER ────────────────────────────────────────────────────────────── */
+.hdr{height:54px;background:var(--s1);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;padding:0 16px;flex-shrink:0;}
+.logo{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--tx);display:flex;align-items:center;gap:8px;letter-spacing:-.02em;}
+.logo-mark{width:28px;height:28px;border-radius:7px;background:var(--blue-bg);border:1px solid var(--blue-bd);display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:16px;}
+.hdr-search{flex:1;max-width:280px;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:6px 10px 6px 32px;color:var(--tx);outline:none;font-size:13px;position:relative;}
+.hdr-search-wrap{position:relative;flex:1;max-width:280px;}
+.hdr-search-wrap .ti-search{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--tx3);font-size:14px;pointer-events:none;}
+.hdr-search-wrap input{width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:6px 10px 6px 32px;color:var(--tx);outline:none;font-size:13px;}
+.hdr-search-wrap input:focus{border-color:var(--blue-bd);}
+.hdr-search-wrap input::placeholder{color:var(--tx3);}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:6px;}
+.mode-tabs{display:flex;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:2px;gap:1px;}
+.mtab{padding:5px 13px;border-radius:6px;font-size:12px;font-weight:500;color:var(--tx2);transition:all .15s;cursor:pointer;white-space:nowrap;}
+.mtab:hover{color:var(--tx);background:var(--s2);}
+.mtab.on{background:var(--s2);color:var(--tx);font-weight:600;}
+.mtab.quiz.on{background:var(--orange-bg);color:var(--orange);}
+.mtab.deep.on{background:var(--purple-bg);color:var(--purple);}
+.theme-pill{display:flex;align-items:center;background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:3px;gap:2px;cursor:pointer;transition:border-color .15s;}
+.theme-pill:hover{border-color:var(--bd2);}
+.tpill-opt{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--tx3);transition:all .2s;}
+.tpill-opt.active{background:var(--s1);color:var(--tx);box-shadow:0 1px 4px rgba(0,0,0,.2);}
+[data-theme="light"] .tpill-opt.sun{color:var(--orange);}
+[data-theme="dark"] .tpill-opt.moon{color:var(--purple);}
+.done-chip{font-family:var(--font-mono);font-size:11px;color:var(--tx3);background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:3px 10px;white-space:nowrap;}
+.done-chip b{color:var(--tx);font-weight:500;}
+
+/* ── SIDEBAR ────────────────────────────────────────────────────────────── */
+.sidebar{width:220px;min-width:220px;background:var(--s1);border-right:1px solid var(--bd);overflow-y:auto;display:flex;flex-direction:column;padding-bottom:12px;}
+.sb-cat{padding:18px 10px 4px;}
+.sb-cat-hdr{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);padding:0 8px 6px;cursor:default;}
+.sb-cat-icon{font-size:13px;}
+.sb-cat-prog{margin-left:auto;font-family:var(--font-mono);font-size:9px;color:var(--tx3);}
+.sb-item{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:12.5px;color:var(--tx2);text-decoration:none;transition:background .12s,color .12s;}
+.sb-item:hover{background:var(--s2);color:var(--tx);}
+.sb-item.on{color:var(--tx);}
+.sb-dot{width:5px;height:5px;border-radius:50%;background:var(--bd2);flex-shrink:0;transition:background .2s;}
+.sb-item.done .sb-dot{background:var(--green);}
+.sb-badge{font-size:9px;padding:1px 5px;border-radius:20px;font-family:var(--font-mono);margin-left:auto;flex-shrink:0;font-weight:500;}
+
+/* ── MAIN ───────────────────────────────────────────────────────────────── */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+
+/* ── DASHBOARD ──────────────────────────────────────────────────────────── */
+.dash{flex:1;overflow-y:auto;padding:20px 22px;}
+
+/* Setup banner — pipeline style */
+.setup-pipe{background:var(--s1);border:1px solid var(--orange-bd);border-radius:var(--r-lg);padding:18px 20px;margin-bottom:20px;display:flex;flex-direction:column;gap:12px;}
+.setup-pipe-top{display:flex;align-items:center;gap:12px;}
+.setup-pipe-icon{width:36px;height:36px;border-radius:8px;background:var(--orange-bg);border:1px solid var(--orange-bd);display:flex;align-items:center;justify-content:center;color:var(--orange);font-size:18px;flex-shrink:0;}
+.setup-pipe-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--tx);}
+.setup-pipe-sub{font-size:12.5px;color:var(--tx2);margin-top:2px;line-height:1.5;}
+.setup-steps{display:flex;gap:0;overflow:hidden;border-radius:8px;border:1px solid var(--bd);}
+.setup-step{flex:1;padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:12px;border-right:1px solid var(--bd);background:var(--s2);}
+.setup-step:last-child{border-right:none;}
+.setup-step.done{background:var(--green-bg);}
+.setup-step.done .sstep-num{background:var(--green);color:var(--bg);}
+.setup-step.active .sstep-num{background:var(--orange);color:var(--bg);animation:pulse-num 2s ease-in-out infinite;}
+@keyframes pulse-num{0%,100%{opacity:1}50%{opacity:.6}}
+.sstep-num{width:18px;height:18px;border-radius:50%;background:var(--s3);color:var(--tx3);font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--font-mono);}
+.sstep-text{font-size:11.5px;color:var(--tx2);line-height:1.4;}
+.setup-step.done .sstep-text{color:var(--green);}
+.setup-step.active .sstep-text{color:var(--orange);}
+
+/* Hero */
+.hero{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r-lg);padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:20px;}
+.hero-left h1{font-family:var(--font-display);font-size:18px;font-weight:700;letter-spacing:-.02em;color:var(--tx);margin-bottom:4px;}
+.hero-left p{font-size:13px;color:var(--tx2);}
+.hero-right{display:flex;align-items:center;gap:20px;flex-shrink:0;}
+.hero-ring{position:relative;display:flex;align-items:center;justify-content:center;}
+.hero-ring-text{position:absolute;text-align:center;}
+.hero-ring-val{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--tx);line-height:1;}
+.hero-ring-lbl{font-size:9px;color:var(--tx3);margin-top:1px;font-family:var(--font-mono);}
+.hero-stats{display:flex;gap:14px;}
+.hstat{text-align:center;}
+.hstat-val{font-family:var(--font-display);font-size:20px;font-weight:700;line-height:1.1;}
+.hstat-lbl{font-size:10px;color:var(--tx3);margin-top:2px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;}
+
+/* Category header */
+.cat-section{margin-bottom:24px;}
+.cat-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;border-radius:9px;position:relative;overflow:hidden;}
+.cat-hdr-icon{font-size:18px;flex-shrink:0;}
+.cat-hdr-info{flex:1;}
+.cat-hdr-label{font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:.01em;line-height:1;}
+.cat-hdr-sub{font-size:11px;margin-top:2px;font-family:var(--font-mono);}
+.cat-hdr-badge{font-size:10px;font-family:var(--font-mono);padding:3px 9px;border-radius:20px;font-weight:600;margin-left:auto;flex-shrink:0;}
+.cat-hdr-bar{position:absolute;bottom:0;left:0;height:2px;border-radius:0 2px 2px 0;transition:width .5s ease;}
+
+/* Topic grid */
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;}
+.tcard{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r-lg);padding:16px;cursor:default;transition:transform .14s,box-shadow .14s,border-color .18s,background .22s;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:10px;}
+.tcard:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--tcard-bd,var(--bd2));}
+.tcard-icon-row{display:flex;align-items:center;justify-content:space-between;}
+.tcard-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;transition:background .22s,border-color .22s;}
+.tcard-check{font-size:16px;color:var(--green);}
+.tcard-name{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--tx);letter-spacing:-.01em;line-height:1.3;}
+.tcard-desc{font-size:12px;color:var(--tx2);line-height:1.5;}
+.tcard-tags{display:flex;flex-wrap:wrap;gap:4px;}
+.tcard-tag{font-size:10px;padding:2px 7px;border-radius:20px;font-family:var(--font-mono);font-weight:500;}
+.tt-easy{background:var(--easy-bg);color:var(--easy);}
+.tt-medium{background:var(--med-bg);color:var(--med);}
+.tt-hard{background:var(--hard-bg);color:var(--hard);}
+.tt-cat{background:var(--s2);color:var(--tx2);border:1px solid var(--bd);}
+.tcard-actions{display:flex;gap:5px;margin-top:auto;}
+.tact{flex:1;padding:6px 4px;border-radius:6px;font-size:11.5px;font-weight:500;text-align:center;cursor:pointer;transition:all .13s;border:1px solid var(--bd);color:var(--tx2);background:var(--bg);}
+.tact:hover{border-color:var(--bd2);color:var(--tx);background:var(--s2);}
+.tact.primary{background:var(--blue-bg);border-color:var(--blue-bd);color:var(--blue);}
+.tact.primary:hover{background:rgba(52,115,245,.22);color:var(--blue);}
+
+/* Chat view */
+.cv{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.tbar{display:flex;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid var(--bd);background:var(--s1);flex-shrink:0;height:52px;}
+.back-btn{display:flex;align-items:center;gap:5px;color:var(--tx2);font-size:12px;border:1px solid var(--bd);border-radius:var(--r);padding:5px 10px;transition:all .13s;}
+.back-btn:hover{background:var(--s2);color:var(--tx);border-color:var(--bd2);}
+.tbar-name{font-family:var(--font-display);font-size:14px;font-weight:600;letter-spacing:-.01em;color:var(--tx);}
+.tbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.mpill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid;font-family:var(--font-mono);}
+.mpill.s{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-bd);}
+.mpill.q{background:var(--orange-bg);color:var(--orange);border-color:var(--orange-bd);}
+.mpill.d{background:var(--purple-bg);color:var(--purple);border-color:var(--purple-bd);}
+.mark-done-btn{font-size:11px;padding:5px 10px;border:1px solid var(--green-bd);border-radius:var(--r);background:var(--green-bg);color:var(--green);cursor:pointer;transition:all .13s;font-weight:500;}
+.mark-done-btn:hover{background:rgba(16,217,164,.22);}
+.radar{position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
+.rdot{width:6px;height:6px;background:var(--green);border-radius:50%;z-index:2;opacity:0;transition:opacity .3s;}
+.rdot.on{opacity:1;}
+.rring{position:absolute;width:6px;height:6px;border:1.5px solid var(--green);border-radius:50%;opacity:0;pointer-events:none;}
+.rring.pulse{animation:radar 1.5s ease-out forwards;}
+@keyframes radar{0%{transform:scale(1);opacity:.7}100%{transform:scale(5);opacity:0}}
+
+/* Messages */
+.msgs{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:14px;}
+.wmsg{display:flex;align-items:flex-start;gap:10px;max-width:660px;}
+.ai-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--blue-bg),var(--purple-bg));border:1.5px solid var(--blue-bd);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;box-shadow:0 0 0 3px var(--blue-bg);}
+.wbub{background:var(--s1);border:1px solid var(--bd);border-radius:10px;border-top-left-radius:2px;padding:12px 16px;font-size:13.5px;color:var(--tx2);line-height:1.65;}
+.wchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.wchip{font-size:12px;padding:5px 12px;background:var(--bg);border:1px solid var(--bd);border-radius:20px;color:var(--tx2);cursor:pointer;transition:all .13s;}
+.wchip:hover{background:var(--blue-bg);border-color:var(--blue-bd);color:var(--blue);}
+.mrow{display:flex;gap:10px;}
+.mrow.u{flex-direction:row-reverse;}
+.u-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--s3),var(--s2));border:1.5px solid var(--bd2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--tx2);flex-shrink:0;font-family:var(--font-display);}
+.bbl{max-width:min(580px,86%);padding:10px 14px;border-radius:10px;font-size:14px;line-height:1.7;}
+.bbl-u{background:var(--blue-bg);border:1px solid var(--blue-bd);border-top-right-radius:2px;color:var(--tx);}
+.bbl-ai{background:var(--s1);border:1px solid var(--bd);border-top-left-radius:2px;color:var(--tx);}
+.bbl-ai h1,.bbl-ai h2,.bbl-ai h3{font-family:var(--font-display);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tx);margin:14px 0 6px;padding-bottom:5px;border-bottom:1px solid var(--bd);}
+.bbl-ai h1:first-child,.bbl-ai h2:first-child,.bbl-ai h3:first-child{margin-top:0;}
+.bbl-ai p{margin:5px 0;}
+.bbl-ai ul,.bbl-ai ol{padding-left:18px;margin:5px 0;}
+.bbl-ai li{margin:3px 0;}
+.bbl-ai strong{color:var(--tx);font-weight:600;}
+.bbl-ai em{color:var(--blue);}
+.bbl-ai code{background:var(--bg);border:1px solid var(--bd);padding:1px 5px;border-radius:4px;font-family:var(--font-mono);font-size:12px;color:var(--orange);}
+.bbl-ai pre{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;margin:8px 0;overflow-x:auto;}
+.bbl-ai pre code{background:none;border:none;padding:0;color:var(--tx);}
+.bbl-ai blockquote{border-left:3px solid var(--blue-bd);padding-left:12px;color:var(--tx2);margin:8px 0;}
+.bbl-ai hr{border:none;border-top:1px solid var(--bd);margin:10px 0;}
+.bbl-ai table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+.bbl-ai th{background:var(--s2);font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.07em;padding:7px 10px;text-align:left;color:var(--tx2);}
+.bbl-ai td{padding:6px 10px;border-bottom:1px solid var(--bd);}
+.bbl-ai tr:last-child td{border-bottom:none;}
+.cursor{display:inline-block;width:2px;height:14px;background:var(--blue);margin-left:2px;vertical-align:middle;animation:blink .8s step-end infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.src-row{display:flex;flex-direction:column;gap:5px;max-width:min(580px,86%);margin-left:42px;}
+.src-tog{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--tx3);cursor:pointer;font-family:var(--font-mono);transition:color .12s;}
+.src-tog:hover{color:var(--tx2);}
+.src-panel{display:none;flex-direction:column;gap:5px;}
+.src-panel.open{display:flex;}
+.src-item{background:var(--s1);border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.src-hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:var(--s2);border-bottom:1px solid var(--bd);}
+.src-lbl{font-family:var(--font-mono);font-size:10px;color:var(--tx2);}
+.src-score{font-family:var(--font-mono);font-size:9px;background:var(--green-bg);color:var(--green);padding:2px 7px;border-radius:10px;}
+.src-pre{padding:8px 12px;font-family:var(--font-mono);font-size:11px;color:var(--tx3);line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:72px;overflow-y:auto;}
+
+/* Input bar */
+.ibar{padding:12px 18px;border-top:1px solid var(--bd);background:var(--s1);flex-shrink:0;}
+.iwrap{display:flex;gap:10px;align-items:flex-end;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:9px 13px;transition:border-color .15s,box-shadow .15s;}
+.iwrap:focus-within{border-color:var(--blue-bd);box-shadow:0 0 0 3px var(--blue-bg);}
+.ifield{flex:1;background:none;border:none;outline:none;color:var(--tx);resize:none;min-height:22px;max-height:120px;line-height:1.5;overflow-y:auto;}
+.ifield::placeholder{color:var(--tx3);}
+.sbtn{width:34px;height:34px;background:var(--blue);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;transition:background .13s,transform .1s;flex-shrink:0;}
+.sbtn:hover:not(:disabled){background:#4F86FF;transform:scale(1.05);}
+.sbtn:disabled{background:var(--s3);cursor:not-allowed;}
+.ihint{font-size:10px;color:var(--tx3);text-align:center;margin-top:6px;font-family:var(--font-mono);}
+
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .hero-stats,.hero-ring{display:none;}
+  .mode-tabs{display:none;}
+  .done-chip{display:none;}
+  .hdr-search-wrap{display:none;}
+  .tgrid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script type="module">
+import{h,render}from'https://esm.sh/preact@10';
+import{useState,useEffect,useRef}from'https://esm.sh/preact@10/hooks';
+import htm from'https://esm.sh/htm@3';
+const html=htm.bind(h);
+
+/* ── THEME ─────────────────────────────────────────────────────────────── */
+function toggleTheme(){
+  const next=document.documentElement.dataset.theme==='dark'?'light':'dark';
+  document.documentElement.dataset.theme=next;
+  localStorage.setItem('sd_theme',next);
+}
+
+/* ── DATA ───────────────────────────────────────────────────────────────── */
+const CATS=[
+  {id:'fund',lbl:'Fundamentals',icon:'ti-settings-2',color:'var(--cat-fund)',sub:'Core algorithms & building blocks'},
+  {id:'stor',lbl:'Storage & Data',icon:'ti-database',color:'var(--cat-stor)',sub:'Databases, caching & object storage'},
+  {id:'core',lbl:'Core Systems',icon:'ti-building-community',color:'var(--cat-core)',sub:'Real-world product architectures'},
+  {id:'infra',lbl:'Infrastructure',icon:'ti-server-2',color:'var(--cat-infra)',sub:'Queues, monitoring & geo-services'},
+  {id:'adv',lbl:'Advanced',icon:'ti-rocket',color:'var(--cat-adv)',sub:'High-stakes, complex transaction systems'},
+];
+
+const TOPICS=[
+  {id:'consistent-hashing',lbl:'Consistent Hashing',cat:'fund',d:'medium',desc:'Distribute load across nodes with minimal rehashing on topology changes',icon:'ti-circles-relation',tags:['hashing','distribution'],prompt:'Explain consistent hashing — what problem it solves and how it works.'},
+  {id:'rate-limiter',lbl:'Rate Limiter',cat:'fund',d:'medium',desc:'Control request throughput using token bucket, leaky bucket, or sliding window',icon:'ti-gauge',tags:['throttling','algorithms'],prompt:'How does the rate limiter design work? Cover all major algorithms.'},
+  {id:'unique-id',lbl:'Unique ID Generator',cat:'fund',d:'medium',desc:'Generate globally unique, sortable IDs in distributed systems via snowflake',icon:'ti-fingerprint',tags:['distributed','snowflake'],prompt:'How do you design a distributed unique ID generator?'},
+  {id:'url-shortener',lbl:'URL Shortener',cat:'fund',d:'easy',desc:'Convert long URLs to short aliases; resolve collisions with base62 encoding',icon:'ti-link',tags:['hashing','base62'],prompt:'Explain the URL shortener design from the books.'},
+  {id:'key-value-store',lbl:'Key-Value Store',cat:'stor',d:'hard',desc:'Distributed KV with replication, CAP tradeoffs, gossip protocol',icon:'ti-database',tags:['CAP','replication'],prompt:'Walk me through designing a distributed key-value store.'},
+  {id:'db-sharding',lbl:'Database Sharding',cat:'stor',d:'medium',desc:'Horizontal partitioning strategies: range, hash, directory sharding',icon:'ti-layout-distribute-horizontal',tags:['partitioning','hotspot'],prompt:'Explain database sharding strategies and tradeoffs.'},
+  {id:'dist-cache',lbl:'Distributed Cache',cat:'stor',d:'medium',desc:'Multi-tier caching with LRU/LFU eviction, TTL, and write-through policies',icon:'ti-bolt',tags:['Redis','eviction'],prompt:'How does a distributed cache like Redis work at scale?'},
+  {id:'obj-storage',lbl:'S3 Object Storage',cat:'stor',d:'hard',desc:'Immutable blob storage with metadata service, replication, and erasure coding',icon:'ti-cloud',tags:['blob','metadata'],prompt:'Design an S3-like distributed object storage system.'},
+  {id:'news-feed',lbl:'News Feed',cat:'core',d:'medium',desc:'Fan-out patterns, ranking algorithms, and cursor-based pagination at scale',icon:'ti-news',tags:['fanout','ranking'],prompt:'How is a scalable news feed system designed?'},
+  {id:'chat-system',lbl:'Chat System',cat:'core',d:'hard',desc:'WebSocket sessions, message delivery guarantees, and presence tracking',icon:'ti-message-circle',tags:['WebSocket','presence'],prompt:"What's the architecture of a chat system like WhatsApp?"},
+  {id:'notifications',lbl:'Notification System',cat:'core',d:'medium',desc:'Push delivery pipelines, topic fan-out, retry logic, and deduplication',icon:'ti-bell',tags:['push','fanout'],prompt:'How do push notification systems work at scale?'},
+  {id:'autocomplete',lbl:'Search Autocomplete',cat:'core',d:'medium',desc:'Trie-based prefix search with real-time ranking, caching, and fuzzy matching',icon:'ti-search',tags:['trie','ranking'],prompt:'How is type-ahead search autocomplete implemented?'},
+  {id:'youtube',lbl:'YouTube / Video CDN',cat:'core',d:'hard',desc:'Video transcoding pipelines, adaptive bitrate streaming, and CDN delivery',icon:'ti-player-play',tags:['transcoding','CDN'],prompt:'How does a video streaming platform like YouTube work?'},
+  {id:'gdrive',lbl:'Google Drive',cat:'core',d:'hard',desc:'Chunked uploads, delta sync, conflict resolution, and metadata storage',icon:'ti-folder',tags:['sync','chunking'],prompt:'Design a cloud file storage system like Google Drive.'},
+  {id:'crawler',lbl:'Web Crawler',cat:'core',d:'medium',desc:'Distributed BFS crawling with politeness, deduplication, and priority queues',icon:'ti-robot',tags:['BFS','deduplication'],prompt:'Design a distributed web crawler.'},
+  {id:'msg-queue',lbl:'Message Queue',cat:'infra',d:'hard',desc:'Durable pub-sub with ordering guarantees, consumer groups, dead-letter queues',icon:'ti-stack-2',tags:['Kafka','ordering'],prompt:'Design a distributed message queue system like Kafka.'},
+  {id:'metrics',lbl:'Metrics Monitoring',cat:'infra',d:'medium',desc:'Time-series ingestion, aggregation pipelines, alerting, and long-term storage',icon:'ti-chart-line',tags:['time-series','alerting'],prompt:'How do large-scale metrics monitoring systems work?'},
+  {id:'proximity',lbl:'Proximity Service',cat:'infra',d:'medium',desc:'Geohash and quadtree for location indexing and radius search at scale',icon:'ti-map-pin',tags:['geohash','location'],prompt:'How is a proximity / location-based service designed?'},
+  {id:'payment',lbl:'Payment System',cat:'adv',d:'hard',desc:'Idempotent transactions, double-spend prevention, and ledger reconciliation',icon:'ti-credit-card',tags:['idempotency','reconciliation'],prompt:'Design a reliable distributed payment system.'},
+  {id:'hotel',lbl:'Hotel Reservation',cat:'adv',d:'hard',desc:'Inventory management, overbooking prevention, and distributed transactions',icon:'ti-building',tags:['inventory','transactions'],prompt:'Design a hotel room reservation system.'},
+  {id:'ad-click',lbl:'Ad Click Aggregation',cat:'adv',d:'hard',desc:'High-throughput click ingestion, real-time aggregation, and fraud detection',icon:'ti-cursor-text',tags:['streaming','aggregation'],prompt:'Design an ad click event aggregation system.'},
+  {id:'maps',lbl:'Google Maps',cat:'adv',d:'hard',desc:'Graph routing, ETA prediction, tile serving, and real-time traffic updates',icon:'ti-map-2',tags:['graph','ETA'],prompt:'How does a mapping and navigation system like Google Maps work?'},
+];
+
+/* ── UTILS ──────────────────────────────────────────────────────────────── */
+const loadProg=()=>{try{return JSON.parse(localStorage.getItem('sd_prog')||'{}')}catch{return{}}};
+const saveProg=p=>localStorage.setItem('sd_prog',JSON.stringify(p));
+const ML={study:'Study',quiz:'Quiz',deep_dive:'Deep Dive'};
+const MC={study:'s',quiz:'q',deep_dive:'d'};
+const DC={easy:'tt-easy',medium:'tt-medium',hard:'tt-hard'};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+/* ── PROGRESS RING ─────────────────────────────────────────────────────── */
+function Ring({done,total,size=68,stroke=4,color='var(--blue)'}){
+  const r=(size-stroke*2)/2,circ=2*Math.PI*r,pct=total?done/total:0;
+  return html`
+    <svg width=${size} height=${size} viewBox=${'0 0 '+size+' '+size}>
+      <circle cx=${size/2} cy=${size/2} r=${r} fill="none" stroke="var(--s2)" stroke-width=${stroke}/>
+      <circle cx=${size/2} cy=${size/2} r=${r} fill="none" stroke=${color} stroke-width=${stroke}
+        stroke-dasharray=${circ*pct+' '+circ*2}
+        stroke-linecap="round"
+        transform=${'rotate(-90 '+(size/2)+' '+(size/2)+')'}
+        style="transition:stroke-dasharray .6s ease"/>
+    </svg>`;
+}
+
+/* ── TOPIC CARD ─────────────────────────────────────────────────────────── */
+function TopicCard({t,done,catColor,onStudy,onQuiz,onDeep}){
+  const iconBg=catColor.replace('var(','').replace(')','');
+  const hex=getComputedStyle(document.documentElement).getPropertyValue(iconBg).trim();
+  const borderStyle={'--tcard-bd':hex+'4a'};
+  return html`
+    <div class="tcard" style=${Object.assign({'--tcard-bd':catColor.replace(')',',0.3)')
+      .replace('var(--cat-','rgba(').replace('fund','52,115,245')
+      .replace('stor','16,217,164').replace('core','139,92,246')
+      .replace('infra','245,158,11').replace('adv','255,120,68')})}> 
+      <div class="tcard-icon-row">
+        <div class="tcard-icon" style=${{background:catColor.replace(')','-bg)').replace(/var\(--cat-(\w+)\)/,(m,n)=>'var(--cat-'+n+'-bg,var(--blue-bg))'),border:'1px solid '+catColor.replace(')','-bd)').replace(/var\(--cat-(\w+)\)/,(m,n)=>'var(--cat-'+n+'-bd,var(--blue-bd))'),color:catColor}}>
+          <i class=${'ti '+t.icon} aria-hidden="true"></i>
+        </div>
+        ${done&&html`<i class="ti ti-circle-check tcard-check" aria-hidden="true"></i>`}
+      </div>
+      <div>
+        <div class="tcard-name">${t.lbl}</div>
+        <div class="tcard-desc">${t.desc}</div>
+      </div>
+      <div class="tcard-tags">
+        <span class=${'tcard-tag '+DC[t.d]}>${t.d}</span>
+        ${t.tags.map(tg=>html`<span class="tcard-tag tt-cat" key=${tg}>${tg}</span>`)}
+      </div>
+      <div class="tcard-actions">
+        <button class="tact primary" onClick=${onStudy}><i class="ti ti-book-2" aria-hidden="true"></i> Study</button>
+        <button class="tact" onClick=${onQuiz}><i class="ti ti-target" aria-hidden="true"></i> Quiz</button>
+        <button class="tact" onClick=${onDeep}><i class="ti ti-microscope" aria-hidden="true"></i> Dive</button>
+      </div>
+    </div>`;
+}
+
+/* ── SETUP BANNER ───────────────────────────────────────────────────────── */
+function SetupBanner(){
+  const steps=[
+    {lbl:'GitHub repos fetched',sub:'443 docs downloaded',done:true},
+    {lbl:'993 / 2,052 chunks cached',sub:'embedding_cache.json saved',done:true},
+    {lbl:'Resume after 11 AM Kuwait',sub:'python ingest.py',active:true},
+    {lbl:'Launch full app',sub:'python server.py',active:false},
+  ];
+  return html`
+    <div class="setup-pipe">
+      <div class="setup-pipe-top">
+        <div class="setup-pipe-icon"><i class="ti ti-clock-hour-3" aria-hidden="true"></i></div>
+        <div>
+          <div class="setup-pipe-title">Knowledge base building — chat live soon</div>
+          <div class="setup-pipe-sub">Gemini embedding quota (1,000/day) exhausted. Resets <strong>11:00 AM Kuwait time</strong> tomorrow — then runs automatically from chunk 993.</div>
+        </div>
+      </div>
+      <div class="setup-steps">
+        ${steps.map((s,i)=>html`
+          <div class=${'setup-step'+(s.done?' done':s.active?' active':'')} key=${i}>
+            <div class="sstep-num">${s.done?html`<i class="ti ti-check" style="font-size:10px" aria-hidden="true"></i>`:i+1}</div>
+            <div class="sstep-text"><strong>${s.lbl}</strong><br/>${s.sub}</div>
+          </div>`)}
+      </div>
+    </div>`;
+}
+
+/* ── DASHBOARD ──────────────────────────────────────────────────────────── */
+function Dashboard({progress,onSel,stats,search}){
+  const done=Object.values(progress).filter(p=>p.done).length;
+  const total=TOPICS.length;
+  const notReady=!stats.chunks||stats.status==='not_ready';
+  const filt=t=>!search||t.lbl.toLowerCase().includes(search.toLowerCase())||t.tags.some(g=>g.toLowerCase().includes(search.toLowerCase()))||t.desc.toLowerCase().includes(search.toLowerCase());
+  const CAT_COLOR={fund:'var(--cat-fund)',stor:'var(--cat-stor)',core:'var(--cat-core)',infra:'var(--cat-infra)',adv:'var(--cat-adv)'};
+
+  return html`
+    <div class="dash">
+      ${notReady&&html`<${SetupBanner}/>`}
+      <div class="hero">
+        <div class="hero-left">
+          <h1>System Design Interview Prep</h1>
+          <p>${total} topics · ${notReady?'building knowledge base…':stats.chunks?.toLocaleString()+' chunks'} · Alex Xu + 3 GitHub repos</p>
+        </div>
+        <div class="hero-right">
+          <div class="hero-ring">
+            <${Ring} done=${done} total=${total} size=${72} stroke=${4.5} color="var(--blue)"/>
+            <div class="hero-ring-text">
+              <div class="hero-ring-val">${Math.round(done/total*100)}%</div>
+              <div class="hero-ring-lbl">done</div>
+            </div>
+          </div>
+          <div class="hero-stats">
+            <div class="hstat"><div class="hstat-val" style="color:var(--blue)">${done}</div><div class="hstat-lbl">completed</div></div>
+            <div class="hstat"><div class="hstat-val" style="color:var(--tx2)">${total-done}</div><div class="hstat-lbl">remaining</div></div>
+          </div>
+        </div>
+      </div>
+
+      ${CATS.map(cat=>{
+        const ct=TOPICS.filter(t=>t.cat===cat.id&&filt(t));
+        if(!ct.length)return null;
+        const cdone=ct.filter(t=>progress[t.id]?.done).length;
+        const pct=ct.length?cdone/ct.length:0;
+        return html`
+          <div class="cat-section" key=${cat.id}>
+            <div class="cat-hdr" style=${{background:CAT_COLOR[cat.id].replace(')','-bg)').replace(/var\(--cat-(\w+)\)/,(m,n)=>'var(--s2)'),borderLeft:'3px solid '+CAT_COLOR[cat.id]}}>
+              <i class=${'ti '+cat.icon+' cat-hdr-icon'} style=${{color:CAT_COLOR[cat.id]}} aria-hidden="true"></i>
+              <div class="cat-hdr-info">
+                <div class="cat-hdr-label" style=${{color:CAT_COLOR[cat.id]}}>${cat.lbl}</div>
+                <div class="cat-hdr-sub" style=${{color:'var(--tx3)'}}>${cat.sub}</div>
+              </div>
+              <div class="cat-hdr-badge" style=${{background:CAT_COLOR[cat.id].replace(')','-bg)').replace(/var\(--cat-(\w+)\)/,(m,n)=>'var(--s3)'),color:CAT_COLOR[cat.id]}}>${cdone}/${ct.length}</div>
+              <div class="cat-hdr-bar" style=${{width:(pct*100)+'%',background:CAT_COLOR[cat.id]}}></div>
+            </div>
+            <div class="tgrid">
+              ${ct.map(t=>html`<${TopicCard} key=${t.id} t=${t} done=${!!progress[t.id]?.done}
+                catColor=${CAT_COLOR[t.cat]}
+                onStudy=${()=>onSel(t,'study')} onQuiz=${()=>onSel(t,'quiz')} onDeep=${()=>onSel(t,'deep_dive')}/>`)}
+            </div>
+          </div>`;
+      })}
+    </div>`;
+}
+
+/* ── MESSAGES ───────────────────────────────────────────────────────────── */
+function Msg({msg}){
+  const ref=useRef(null);
+  useEffect(()=>{
+    if(ref.current&&msg.role==='assistant'){
+      try{ref.current.innerHTML=marked.parse(msg.content||'')+( msg.streaming?'<span class="cursor"></span>':'');}
+      catch{ref.current.textContent=msg.content;}
+    }
+  },[msg.content,msg.streaming]);
+  if(msg.role==='user') return html`
+    <div class="mrow u">
+      <div class="u-av">U</div>
+      <div class="bbl bbl-u" style="white-space:pre-wrap">${msg.content}</div>
+    </div>`;
+  return html`
+    <div>
+      <div class="mrow">
+        <div class="ai-av"><i class="ti ti-building-arch" style="font-size:15px;color:var(--blue)" aria-hidden="true"></i></div>
+        <div class="bbl bbl-ai" ref=${ref}></div>
+      </div>
+      ${msg.sources?.length>0&&html`<${Sources} chunks=${msg.sources}/>`}
+    </div>`;
+}
+
+function Sources({chunks}){
+  const[open,setOpen]=useState(false);
+  return html`
+    <div class="src-row">
+      <button class="src-tog" onClick=${()=>setOpen(!open)}>
+        <i class=${'ti '+(open?'ti-chevron-down':'ti-chevron-right')} aria-hidden="true"></i>
+        ${chunks.length} source${chunks.length>1?'s':''} referenced
+      </button>
+      <div class=${'src-panel'+(open?' open':'')}>
+        ${chunks.map((s,i)=>html`
+          <div class="src-item" key=${i}>
+            <div class="src-hdr">
+              <span class="src-lbl">${esc(s.source)} · pg ${s.page}</span>
+              <span class="src-score">${Math.round(s.similarity*100)}% match</span>
+            </div>
+            <div class="src-pre">${s.text.slice(0,280)}${s.text.length>280?'…':''}</div>
+          </div>`)}
+      </div>
+    </div>`;
+}
+
+/* ── CHAT VIEW ──────────────────────────────────────────────────────────── */
+function ChatView({topic,mode,catColor,onBack,onMarkDone}){
+  const[msgs,setMsgs]=useState([]);
+  const[inputVal,setInputVal]=useState('');
+  const[streaming,setStreaming]=useState(false);
+  const[hist,setHist]=useState([]);
+  const[radarOn,setRadarOn]=useState(false);
+  const[pulse,setPulse]=useState(false);
+  const endRef=useRef(null);
+  const taRef=useRef(null);
+
+  useEffect(()=>{endRef.current?.scrollIntoView({behavior:'smooth'});},[msgs]);
+
+  const doPulse=()=>{setPulse(false);requestAnimationFrame(()=>setPulse(true));setTimeout(()=>setPulse(false),1600);};
+
+  const intros={
+    study:`I'll explain **${topic.lbl}** clearly, drawing from Alex Xu's books and the GitHub knowledge base. ${topic.desc}.`,
+    quiz:`Ready to test your understanding of **${topic.lbl}**? I'll ask like a real interviewer — no free answers.`,
+    deep_dive:`Let's go deep on **${topic.lbl}**. I'll walk through the full architecture, components, tradeoffs, and scalability path.`,
+  };
+  const qs={
+    study:['Explain the basics','Show the architecture diagram','What are the key tradeoffs?'],
+    quiz:['Start the interview','Quiz me on tradeoffs','Ask about scalability'],
+    deep_dive:['Full architecture walkthrough','What breaks at 10× load?','Compare design approaches'],
+  };
+
+  const send=async(text)=>{
+    if(!text?.trim()||streaming)return;
+    setMsgs(p=>[...p,{role:'user',content:text}]);
+    setHist(p=>[...p,{role:'user',content:text}]);
+    setStreaming(true);
+    if(taRef.current){taRef.current.value='';taRef.current.style.height='auto';}
+    setInputVal('');
+    setRadarOn(true);doPulse();
+    setMsgs(p=>[...p,{role:'assistant',content:'',sources:[],streaming:true}]);
+    try{
+      const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({query:text,mode,history:hist})});
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      const reader=res.body.getReader(),dec=new TextDecoder();
+      let buf='',full='',sources=[];
+      while(true){
+        const{done,value}=await reader.read();if(done)break;
+        buf+=dec.decode(value,{stream:true});
+        const lines=buf.split('\n');buf=lines.pop();
+        for(const line of lines){
+          if(!line.startsWith('data: '))continue;
+          let evt;try{evt=JSON.parse(line.slice(6));}catch{continue;}
+          if(evt.type==='sources')sources=evt.data;
+          else if(evt.type==='token'){
+            full+=evt.text;
+            setMsgs(p=>{const m=[...p];m[m.length-1]={role:'assistant',content:full,sources,streaming:true};return m;});
+            doPulse();
+          }else if(evt.type==='error')full+='\n\n**Error:** '+evt.message;
+        }
+      }
+      setMsgs(p=>{const m=[...p];m[m.length-1]={role:'assistant',content:full,sources,streaming:false};return m;});
+      setHist(p=>[...p,{role:'assistant',content:full}]);
+    }catch(e){
+      setMsgs(p=>{const m=[...p];m[m.length-1]={role:'assistant',content:'Connection error: '+e.message,sources:[],streaming:false};return m;});
+    }finally{setStreaming(false);setRadarOn(false);}
+  };
+
+  return html`
+    <div class="cv">
+      <div class="tbar">
+        <button class="back-btn" onClick=${onBack}>
+          <i class="ti ti-arrow-left" aria-hidden="true"></i> Topics
+        </button>
+        <div style="width:1px;height:18px;background:var(--bd);margin:0 2px"></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style=${{width:'28px',height:'28px',borderRadius:'7px',background:catColor.replace(')','-bg)').replace(/var\(--cat-(\w+)\)/,()=>'var(--blue-bg)'),border:'1px solid '+catColor.replace(')','-bd)').replace(/var\(--cat-(\w+)\)/,()=>'var(--blue-bd)'),display:'flex',alignItems:'center',justifyContent:'center',color:catColor,fontSize:'14px'}}>
+            <i class=${'ti '+topic.icon} aria-hidden="true"></i>
+          </div>
+          <span class="tbar-name">${topic.lbl}</span>
+          <span class=${'tcard-tag '+DC[topic.d]}>${topic.d}</span>
+        </div>
+        <div class="tbar-right">
+          <span class=${'mpill '+MC[mode]}>${ML[mode]}</span>
+          <div class="radar">
+            <div class=${'rdot'+(radarOn?' on':'')}></div>
+            <div class=${'rring'+(pulse?' pulse':'')}></div>
+          </div>
+          <button class="mark-done-btn" onClick=${()=>onMarkDone(topic.id)}>
+            <i class="ti ti-check" aria-hidden="true"></i> Mark done
+          </button>
+        </div>
+      </div>
+
+      <div class="msgs">
+        ${msgs.length===0&&html`
+          <div class="wmsg">
+            <div class="ai-av"><i class="ti ti-building-arch" style="font-size:15px;color:var(--blue)" aria-hidden="true"></i></div>
+            <div class="wbub">
+              ${intros[mode]}
+              <div class="wchips">
+                ${(qs[mode]||[]).map(q=>html`<button class="wchip" onClick=${()=>send(q)}>${q}</button>`)}
+              </div>
+            </div>
+          </div>`}
+        ${msgs.map((m,i)=>html`<${Msg} key=${i} msg=${m}/>`)}
+        <div ref=${endRef}></div>
+      </div>
+
+      <div class="ibar">
+        <div class="iwrap">
+          <textarea ref=${taRef} class="ifield" rows="1"
+            placeholder=${'Ask about '+topic.lbl+'…'}
+            onInput=${e=>{setInputVal(e.target.value);e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,120)+'px';}}
+            onKeyDown=${e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send(taRef.current?.value);}}}
+          ></textarea>
+          <button class="sbtn" disabled=${streaming||!inputVal.trim()}
+            onClick=${()=>send(taRef.current?.value)}>
+            <i class="ti ti-send" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p class="ihint">Enter to send · Shift+Enter for new line</p>
+      </div>
+    </div>`;
+}
+
+/* ── SIDEBAR ────────────────────────────────────────────────────────────── */
+function Sidebar({progress,activeId,onSel,mode}){
+  const CAT_COLOR={fund:'var(--cat-fund)',stor:'var(--cat-stor)',core:'var(--cat-core)',infra:'var(--cat-infra)',adv:'var(--cat-adv)'};
+  return html`
+    <aside class="sidebar">
+      ${CATS.map(cat=>html`
+        <div class="sb-cat" key=${cat.id}>
+          <div class="sb-cat-hdr">
+            <i class=${'ti '+cat.icon+' sb-cat-icon'} style=${{color:CAT_COLOR[cat.id]}} aria-hidden="true"></i>
+            <span style=${{color:CAT_COLOR[cat.id]}}>${cat.lbl}</span>
+            <span class="sb-cat-prog">
+              ${TOPICS.filter(t=>t.cat===cat.id&&progress[t.id]?.done).length}/${TOPICS.filter(t=>t.cat===cat.id).length}
+            </span>
+          </div>
+          ${TOPICS.filter(t=>t.cat===cat.id).map(t=>html`
+            <a class=${'sb-item'+(activeId===t.id?' on':'')+(progress[t.id]?.done?' done':'')}
+              key=${t.id} href="javascript:void(0)" onClick=${()=>onSel(t,mode)}>
+              <span class="sb-dot" style=${activeId===t.id?{background:CAT_COLOR[t.cat]}:{}}></span>
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.lbl}</span>
+              <span class=${'sb-badge tt-'+t.d} style="font-size:9px">${t.d[0].toUpperCase()}</span>
+            </a>`)}
+        </div>`)}
+    </aside>`;
+}
+
+/* ── APP ────────────────────────────────────────────────────────────────── */
+function App(){
+  const[view,setView]=useState('dashboard');
+  const[topic,setTopic]=useState(null);
+  const[mode,setMode]=useState('study');
+  const[prog,setProg]=useState(loadProg);
+  const[stats,setStats]=useState({});
+  const[search,setSearch]=useState('');
+  const[isDark,setIsDark]=useState(document.documentElement.dataset.theme!=='light');
+
+  useEffect(()=>{fetch('/api/status').then(r=>r.json()).then(setStats).catch(()=>{});},[]);
+
+  const markDone=id=>{const n={...prog,[id]:{...prog[id],done:true}};setProg(n);saveProg(n);};
+  const selTopic=(t,m)=>{setTopic(t);setMode(m||mode);setView('chat');};
+  const goBack=()=>{setView('dashboard');setTopic(null);};
+  const done=Object.values(prog).filter(p=>p.done).length;
+
+  const onToggleTheme=()=>{
+    toggleTheme();
+    setIsDark(d=>!d);
+  };
+
+  const CAT_COLOR={fund:'var(--cat-fund)',stor:'var(--cat-stor)',core:'var(--cat-core)',infra:'var(--cat-infra)',adv:'var(--cat-adv)'};
+
+  return html`
+    <div style="height:100%;display:flex;flex-direction:column;">
+      <header class="hdr">
+        <div class="logo">
+          <div class="logo-mark"><i class="ti ti-building-arch" aria-hidden="true"></i></div>
+          SD Study Bot
+        </div>
+        ${view==='dashboard'&&html`
+          <div class="hdr-search-wrap">
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <input type="text" placeholder="Search topics…" value=${search}
+              onInput=${e=>setSearch(e.target.value)}/>
+          </div>`}
+        <div class="hdr-right">
+          <div class="mode-tabs">
+            ${['study','quiz','deep_dive'].map(m=>html`
+              <button key=${m} class=${'mtab'+(m==='quiz'?' quiz':m==='deep_dive'?' deep':'')+(mode===m?' on':'')}
+                onClick=${()=>setMode(m)}>${ML[m]}</button>`)}
+          </div>
+          <div class="done-chip"><b>${done}</b>/${TOPICS.length} done</div>
+          <div class="theme-pill" onClick=${onToggleTheme} role="button" aria-label="Toggle theme" tabindex="0">
+            <div class=${'tpill-opt sun'+(!isDark?' active':'')}>
+              <i class="ti ti-sun" aria-hidden="true"></i>
+            </div>
+            <div class=${'tpill-opt moon'+(isDark?' active':'')}>
+              <i class="ti ti-moon" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </header>
+      <div class="layout">
+        <${Sidebar} progress=${prog} activeId=${topic?.id} onSel=${selTopic} mode=${mode}/>
+        <main class="main">
+          ${view==='dashboard'
+            ?html`<${Dashboard} progress=${prog} onSel=${selTopic} stats=${stats} search=${search}/>`
+            :html`<${ChatView} topic=${topic} mode=${mode} catColor=${CAT_COLOR[topic?.cat]||'var(--blue)'} onBack=${goBack} onMarkDone=${markDone}/>`}
+        </main>
+      </div>
+    </div>`;
+}
+
+marked.setOptions({breaks:true,gfm:true});
+render(html`<${App}/>`,document.getElementById('app'));
+</script>
+</body>
+</html>

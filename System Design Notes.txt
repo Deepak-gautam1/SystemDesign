@@ -1,0 +1,67 @@
+
+DATABASES 
+| #  | Type                   | Examples                                  | Best For                                            | Avoid When                          | Write Complexity         | Read Complexity              |
+| -- | ---------------------- | ----------------------------------------- | --------------------------------------------------- | ----------------------------------- | ------------------------ | ---------------------------- |
+| 1  | Relational (Row RDBMS) | PostgreSQL, MySQL, RDS                    | ACID transactions, joins, financial/payment systems | Massive horizontal scale            | O(log⁡n)O(\\log n)O(logn) | O(log⁡n)O(\\log n)O(logn)    |
+| 2  | LSM-Tree               | Cassandra, DynamoDB, RocksDB              | High write throughput, IoT, logging, events         | Read-heavy, consistency-critical    | O(1)O(1)O(1) amortized   | O(log⁡n)O(\\log n)O(logn)    |
+| 3  | B-Tree                 | PostgreSQL, InnoDB, Oracle                | Balanced read/write, indexed lookups, range queries | Write-heavy at scale                | O(log⁡n)O(\\log n)O(logn) | O(log⁡n)O(\\log n)O(logn)    |
+| 4  | Key-Value              | Redis, DynamoDB, Riak                     | Caching, sessions, leaderboards, simple lookup      | Complex queries, joins              | O(1)O(1)O(1)             | O(1)O(1)O(1)                 |
+| 5  | Document Store         | MongoDB, Couchbase                        | Flexible schema, JSON data, product catalogs        | Complex joins, relational integrity | O(1)O(1)O(1)             | O(1)O(1)O(1) to O(n)O(n)O(n) |
+| 6  | Columnar (OLAP)        | Redshift, BigQuery, Snowflake, ClickHouse | Aggregations, BI dashboards, data warehouse         | Single-row updates, OLTP            | Batch                    | Very fast scans              |
+| 7  | In-Memory              | Redis, Memcached                          | Sub-ms latency, hot cache, real-time counters       | Durable storage, large datasets     | O(1)O(1)O(1)             | O(1)O(1)O(1)                 |
+| 8  | Object Storage         | S3, GCS                                   | Blobs, images, videos, ML datasets, backups         | DB-style queries, low latency ops   | High throughput          | Higher latency               |
+| 9  | Graph DB               | Neo4j, Neptune                            | Social graphs, fraud detection, recommendations     | Tabular/aggregation workloads       | Varies                   | Fast for hops                |
+| 10 | Time-Series DB         | InfluxDB, TimescaleDB                     | Metrics, monitoring, IoT sensors                    | General-purpose querying            | Append-only              | Time-window fast             |
+| 11 | Search Engine          | Elasticsearch, OpenSearch                 | Full-text search, log search, filter + rank         | Primary transactional storage       | O(log⁡n)O(\\log n)O(logn) | Inverted index fast          || Type                    | How It Works                                                | Use When                             | Examples                   |
+
+MESSAGE QUEUES 
+
+Delivery model : 
+| ----------------------- | ----------------------------------------------------------- | ------------------------------------ | -------------------------- |
+| Point-to-Point (P2P)    | One producer → one consumer; message deleted after consumed | Task queues, job processing          | SQS, RabbitMQ              |
+| Pub/Sub                 | One producer → many subscribers via topics                  | Notifications, event broadcasting    | Kafka, SNS, Google Pub/Sub |
+| FIFO Queue              | Messages processed strictly in order received               | Payment processing, order sequencing | SQS FIFO, RabbitMQ         |
+| Priority Queue          | Higher-priority messages jump the queue                     | Incident alerts, SLA-sensitive tasks | RabbitMQ                   |
+| Dead Letter Queue (DLQ) | Holds messages that failed processing repeatedly            | Error handling, debugging            | SQS DLQ, Kafka             |
+| Delay Queue             | Messages hidden for a delay before becoming visible         | Scheduled retries, deferred tasks    | SQS Delay                  |
+
+By Push vs Pull
+
+
+| Model | Description                                 | Best For                                 |
+| ----- | ------------------------------------------- | ---------------------------------------- |
+| Push  | Broker actively sends messages to consumers | Real-time fanout, low-latency delivery   |
+| Pull  | Consumers poll the broker for messages      | Rate-controlled processing, backpressure |
+
+
+Popular Tools
+
+| Tool              | Model         | Best For                                              |
+| ----------------- | ------------- | ----------------------------------------------------- |
+| Kafka             | Pub/Sub + Log | High-throughput streaming, event sourcing educative​  |
+| RabbitMQ          | P2P + Pub/Sub | Complex routing, multi-protocol support educative​    |
+| SQS               | P2P / FIFO    | Managed AWS queuing, serverless workflows educative​  |
+| ActiveMQ / ZeroMQ | P2P           | Embedded messaging, low-latency brokering hackernoon​ |
+
+
+CDN (Content Delivery Network)
+| Feature                  | Push CDN                                     | Pull CDN                                                    |
+| ------------------------ | -------------------------------------------- | ----------------------------------------------------------- |
+| How content gets to edge | You manually upload to CDN PoPs              | CDN fetches from origin on first request karanpratapsingh​  |
+| First request latency    | Low (already cached)                         | High (cache miss, goes to origin) systemoverflow​           |
+| Subsequent latency       | Low                                          | Low (10–25ms from edge) systemoverflow​                     |
+| Operational overhead     | High (you manage uploads/expiry)             | Low (CDN manages automatically) dev​                        |
+| Best for                 | Static sites, software binaries, live events | Frequently changing content, large catalogs systemoverflow​ |
+| Example                  | Pre-loading a game update                    | Netflix long-tail video catalog                             |
+Most modern websites use Pull CDNs because they are easier to manage and update. Hybrid strategies (push popular content, pull long-tail) dominate at scale.
+
+Load Balancers
+| Feature         | L4 (Transport Layer)           | L7 (Application Layer)              | GSLB (Global)                                   |
+| --------------- | ------------------------------ | ----------------------------------- | ----------------------------------------------- |
+| Operates On     | TCP/UDP, IP + Port             | HTTP/HTTPS, headers, URLs, cookies  | DNS layer across regions                        |
+| Routing Logic   | Simple, packet-level           | Content-aware, intelligent          | Proximity, health, performance geeksforgeeks​   |
+| SSL Termination | ❌                              | ✅                                   | ✅                                               |
+| Speed           | Very fast (less inspection)    | Slower (deep inspection)            | Varies                                          |
+| Features        | NAT, basic routing             | A/B testing, canary deploys, WAF    | Geo-routing, failover across DCs geeksforgeeks​ |
+| Use When        | Raw TCP throughput, gaming, DB | Microservices, REST APIs, HTTP apps | Multi-region HA                                 |
+| Examples        | AWS NLB, HAProxy (TCP mode)    | AWS ALB, NGINX, Envoy               | AWS Route53, Cloudflare                         |

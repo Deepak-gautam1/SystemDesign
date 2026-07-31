@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Surfaces */
+    --background:        220 20% 97%;
+    --foreground:        224 71% 4%;
+    --card:              0 0% 100%;
+    --card-foreground:   224 71% 4%;
+    --popover:           0 0% 100%;
+    --popover-foreground: 224 71% 4%;
+
+    /* Brand */
+    --primary:           230 65% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary:         220 14% 94%;
+    --secondary-foreground: 224 30% 20%;
+    --muted:             220 14% 94%;
+    --muted-foreground:  220 9% 52%;
+    --accent:            262 80% 62%;
+    --accent-foreground: 0 0% 100%;
+    --destructive:       0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* UI */
+    --border:  220 14% 90%;
+    --input:   220 14% 93%;
+    --ring:    230 65% 56%;
+    --radius:  0.625rem;
+
+    /* Category accents */
+    --cat-fund:  217 91% 58%;
+    --cat-stor:  166 72% 42%;
+    --cat-core:  262 80% 62%;
+    --cat-infra: 38  92% 48%;
+    --cat-adv:   13  93% 54%;
+  }
+
+  .dark {
+    --background:        224 48% 5%;
+    --foreground:        210 40% 96%;
+    --card:              224 40% 8%;
+    --card-foreground:   210 40% 96%;
+    --popover:           224 40% 8%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary:           230 65% 65%;
+    --primary-foreground: 224 71% 4%;
+    --secondary:         224 30% 13%;
+    --secondary-foreground: 210 40% 80%;
+    --muted:             224 30% 13%;
+    --muted-foreground:  215 20% 52%;
+    --accent:            262 70% 70%;
+    --accent-foreground: 224 71% 4%;
+    --destructive:       0 62% 40%;
+    --destructive-foreground: 210 40% 96%;
+
+    --border:  224 30% 14%;
+    --input:   224 30% 14%;
+    --ring:    230 65% 65%;
+
+    /* Category accents — slightly brighter in dark */
+    --cat-fund:  217 91% 65%;
+    --cat-stor:  166 72% 52%;
+    --cat-core:  262 70% 72%;
+    --cat-infra: 38  92% 58%;
+    --cat-adv:   13  93% 62%;
+  }
+
+  * { @apply border-border; }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-size: clamp(14px, 2.5vw, 16px);
+    line-height: 1.6;
+  }
+
+  /* Allow opacity utilities on HSL CSS vars */
+  :root { --tw-bg-opacity: 1; }
+}
+
+@layer components {
+  /* Difficulty badge colours */
+  .badge-easy   { @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400; }
+  .badge-medium { @apply bg-amber-100   text-amber-700   dark:bg-amber-950   dark:text-amber-400; }
+  .badge-hard   { @apply bg-rose-100    text-rose-700    dark:bg-rose-950    dark:text-rose-400; }
+
+  /* Mode pill */
+  .mode-study { @apply bg-primary/10 text-primary border border-primary/25; }
+  .mode-quiz  { @apply bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25; }
+  .mode-deep  { @apply bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/25; }
+
+  /* Chat bubble markdown */
+  .prose-chat h1,.prose-chat h2,.prose-chat h3 {
+    @apply font-display font-bold uppercase tracking-widest text-[11px] text-foreground mt-4 mb-2 pb-2 border-b border-border;
+  }
+  .prose-chat h1:first-child,.prose-chat h2:first-child,.prose-chat h3:first-child { @apply mt-0; }
+  .prose-chat p  { @apply my-1.5; }
+  .prose-chat ul,.prose-chat ol { @apply pl-4 my-1.5; }
+  .prose-chat li { @apply my-1; }
+  .prose-chat strong { @apply font-semibold text-foreground; }
+  .prose-chat em    { @apply text-primary italic; }
+  .prose-chat code  { @apply font-mono text-[12px] bg-muted text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded; }
+  .prose-chat pre   { @apply bg-muted rounded-lg p-3 my-2 overflow-x-auto text-[12.5px]; }
+  .prose-chat pre code { @apply bg-transparent text-foreground p-0; }
+  .prose-chat blockquote { @apply border-l-2 border-primary/40 pl-3 text-muted-foreground my-2 italic; }
+  .prose-chat hr   { @apply border-t border-border my-3; }
+  .prose-chat table { @apply w-full text-sm border-collapse my-2; }
+  .prose-chat th { @apply font-mono text-[10px] uppercase tracking-wider bg-muted text-muted-foreground p-2 text-left; }
+  .prose-chat td { @apply p-2 border-b border-border; }
+  .prose-chat tr:last-child td { @apply border-0; }
+
+  /* Animations */
+  .animate-fade-in    { animation: fade-in 0.4s ease-out; }
+  .animate-slide-up   { animation: slide-up 0.35s ease-out; }
+  .animate-slide-in   { animation: slide-in 0.35s ease-out; }
+
+  /* Hover card lift */
+  .card-hover {
+    @apply transition-all duration-200 ease-out;
+  }
+  .card-hover:hover {
+    @apply -translate-y-1 shadow-elevated;
+  }
+
+  /* Scrollbar */
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { @apply bg-muted rounded-full; }
+}
+
+@layer utilities {
+  .font-display { font-family: "Plus Jakarta Sans", "Inter", system-ui, sans-serif; }
+}
