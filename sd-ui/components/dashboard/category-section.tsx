@@ -5,7 +5,7 @@ import { TopicCard } from "./topic-card";
 import type { Category, Topic, Mode, Progress } from "@/lib/types";
 
 function LucideIcon({ name, size = 18, className }: { name: string; size?: number; className?: string }) {
-  const I = (Icons as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[name];
+  const I = (Icons as unknown as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[name];
   return I ? <I size={size} className={className} /> : null;
 }
 

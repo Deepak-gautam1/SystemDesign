@@ -1,12 +1,13 @@
 "use client";
 import * as Icons from "lucide-react";
 import { Building2, Code2, GitBranch, Target, ArrowRight, Clock } from "lucide-react";
+import type { LucideIcon as LucideIconType } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import type { Category, Topic, Mode, Progress, AppSection } from "@/lib/types";
 
 function LucideIcon({ name, size = 16, className }: { name: string; size?: number; className?: string }) {
-  const I = (Icons as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[name];
+  const I = (Icons as unknown as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[name];
   return I ? <I size={size} className={className} /> : <Icons.Box size={size} className={className} />;
 }
 
@@ -23,7 +24,7 @@ interface DashboardHomeProps {
 
 const EXPLORE_CARDS: {
   id: AppSection; label: string; sub: string;
-  Icon: React.ComponentType<{ size?: number; className?: string }>;
+  Icon: LucideIconType;
   color: string; bg: string; border: string; soon?: boolean;
 }[] = [
   { id: "system-design", label: "System Design",          sub: "22 topics · interview prep",  Icon: Building2, color: "text-primary",          bg: "bg-primary/10",       border: "border-primary/25" },

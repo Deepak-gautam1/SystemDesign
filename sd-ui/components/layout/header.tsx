@@ -3,12 +3,13 @@ import {
   Search, BookOpen, Target, Microscope, ChevronRight,
   LayoutDashboard, Building2, Code2, GitBranch,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { AppSection, Mode, Topic } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 // Mode config — tabs only appear when section === "system-design"
-const MODES: { id: Mode; label: string; Icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
+const MODES: { id: Mode; label: string; Icon: LucideIcon }[] = [
   { id: "study",     label: "Study",     Icon: BookOpen    },
   { id: "quiz",      label: "Quiz",      Icon: Target      },
   { id: "deep_dive", label: "Deep Dive", Icon: Microscope  },
@@ -21,7 +22,7 @@ const MODE_ACTIVE: Record<Mode, string> = {
 };
 
 // Single source of truth for "what page am I on" — icon, label, accent color
-const SECTION_META: Record<AppSection, { label: string; Icon: React.ComponentType<{ size?: number; className?: string }>; color: string }> = {
+const SECTION_META: Record<AppSection, { label: string; Icon: LucideIcon; color: string }> = {
   "dashboard":     { label: "Dashboard",              Icon: LayoutDashboard, color: "text-foreground" },
   "system-design": { label: "System Design",          Icon: Building2,       color: "text-primary" },
   "ood":           { label: "Object Oriented Design", Icon: Code2,           color: "text-violet-500 dark:text-violet-400" },

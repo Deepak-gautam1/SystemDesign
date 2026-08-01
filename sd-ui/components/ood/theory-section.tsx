@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { THEORY_CATEGORIES, TOTAL_THEORY_TOPICS } from "@/lib/theory";
 
 function LucideIcon({ name, size = 16, className }: { name: string; size?: number; className?: string }) {
-  const I = (Icons as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[name];
+  const I = (Icons as unknown as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[name];
   return I ? <I size={size} className={className} /> : null;
 }
 

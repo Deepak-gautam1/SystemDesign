@@ -8,7 +8,7 @@ import { useChat } from "@/hooks/use-chat";
 import type { Topic, Category, Mode } from "@/lib/types";
 
 function LucideIcon({ name, size = 15, className }: { name: string; size?: number; className?: string }) {
-  const I = (Icons as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[name];
+  const I = (Icons as unknown as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[name];
   return I ? <I size={size} className={className} /> : null;
 }
 
