@@ -26,8 +26,21 @@ TOP_K = 6
 # ── Local (open-source) embedding backend ──────────────────────────────────────
 # Built by ingest_local.py into its own collection — never mixed with the
 # Gemini-embedded vectors above (different model = different vector space).
-COLLECTION_LOCAL   = "system_design_local"
-LOCAL_EMBED_MODEL   = "BAAI/bge-base-en-v1.5"   # 768-dim, CPU-friendly, no API/quota
+#
+# Overridable via env vars so a memory-constrained free-tier deploy (e.g.
+# Render's 512MB cap) can use a smaller model/collection than the local dev
+# setup, without touching your personal .env. Defaults = the best local
+# option (bge-base) for your own use.
+COLLECTION_LOCAL   = os.getenv("COLLECTION_LOCAL", "system_design_local")
+LOCAL_EMBED_MODEL   = os.getenv("LOCAL_EMBED_MODEL", "BAAI/bge-base-en-v1.5")   # 768-dim, CPU-friendly, no API/quota
+
+# Which library loads LOCAL_EMBED_MODEL:
+#   "sentence-transformers" (default) — needs torch, floors around ~500MB RAM
+#                                        just for the runtime. Fine locally.
+#   "fastembed"                       — ONNX runtime, no torch, ~250MB total.
+#                                        Used for memory-capped free hosting
+#                                        (e.g. Render's 512MB limit).
+LOCAL_EMBED_ENGINE = os.getenv("LOCAL_EMBED_ENGINE", "sentence-transformers").strip().lower()
 
 # Which backend server.py's RAGEngine uses at query time.
 # Override with EMBED_BACKEND=local in .env once ingest_local.py has run.

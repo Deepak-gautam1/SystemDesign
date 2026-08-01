@@ -1,0 +1,15 @@
+# Runtime-only dependencies for the hosted backend (server.py + rag.py).
+#
+# Deliberately excludes sentence-transformers/torch (floors around ~500MB RAM
+# just for the runtime, alone over Render's free 512MB cap) and the
+# ingest-only libs (pymupdf, pdfplumber, tqdm, requests) that server.py never
+# imports. Use fastembed (ONNX, no torch) instead — see config.py's
+# LOCAL_EMBED_ENGINE. requirements.txt (with sentence-transformers) is for
+# local dev, where ingest.py/ingest_local.py build the vector DB.
+google-genai>=1.0.0
+chromadb>=0.5.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+groq>=0.11.0
+python-dotenv>=1.0.0
+fastembed>=0.3.0

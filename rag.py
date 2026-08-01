@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 
 from config import (
     DB_PATH, COLLECTION, TOP_K,
-    EMBED_BACKEND, COLLECTION_LOCAL, LOCAL_EMBED_MODEL,
+    EMBED_BACKEND, COLLECTION_LOCAL, LOCAL_EMBED_MODEL, LOCAL_EMBED_ENGINE,
 )
 
 # BGE retrieval models expect this instruction prefix on the *query* only —
@@ -148,9 +148,14 @@ class RAGEngine:
 
         # ── 1. Embeddings ──────────────────────────────────────────────────────
         if self.embed_backend == "local":
-            from sentence_transformers import SentenceTransformer
-            print(f"  🔢 Loading local embedding model '{LOCAL_EMBED_MODEL}'…")
-            self._local_model = SentenceTransformer(LOCAL_EMBED_MODEL)
+            if LOCAL_EMBED_ENGINE == "fastembed":
+                from fastembed import TextEmbedding
+                print(f"  🔢 Loading fastembed model '{LOCAL_EMBED_MODEL}' (ONNX, no torch)…")
+                self._local_model = TextEmbedding(model_name=LOCAL_EMBED_MODEL)
+            else:
+                from sentence_transformers import SentenceTransformer
+                print(f"  🔢 Loading local embedding model '{LOCAL_EMBED_MODEL}'…")
+                self._local_model = SentenceTransformer(LOCAL_EMBED_MODEL)
         else:
             if not all_keys:
                 raise RuntimeError("No GEMINI_API_KEY found. Copy .env.example → .env")
@@ -255,9 +260,13 @@ class RAGEngine:
     def retrieve(self, query: str, k: int = TOP_K) -> list[dict]:
         """Embed the query and return the top-k most similar book chunks."""
         if self.embed_backend == "local":
-            q_emb = self._local_model.encode(
-                _LOCAL_QUERY_PREFIX + query, normalize_embeddings=True
-            ).tolist()
+            # BGE models expect this instruction prefix on queries; other
+            # local models (e.g. MiniLM) weren't trained with it, so skip it.
+            text = _LOCAL_QUERY_PREFIX + query if "bge" in LOCAL_EMBED_MODEL.lower() else query
+            if LOCAL_EMBED_ENGINE == "fastembed":
+                q_emb = list(self._local_model.embed([text]))[0].tolist()
+            else:
+                q_emb = self._local_model.encode(text, normalize_embeddings=True).tolist()
         else:
             result = self._gemini.models.embed_content(
                 model=self._embed_model, contents=query

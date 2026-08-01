@@ -15,16 +15,34 @@ import os
 import sys
 
 import chromadb
-from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
 from config import (
     PDF_SOURCES, NOTES_FILE, DB_PATH, COLLECTION_LOCAL,
-    CHUNK_SIZE, CHUNK_OVERLAP, LOCAL_EMBED_MODEL,
+    CHUNK_SIZE, CHUNK_OVERLAP, LOCAL_EMBED_MODEL, LOCAL_EMBED_ENGINE,
 )
 from ingest import extract_pdf, extract_notes, extract_github, make_chunks, GITHUB_CONTENT_DIR
 
 BATCH_SIZE = 64
+
+
+def _embed_all(texts: list[str]) -> list[list[float]]:
+    """Embed all chunks with whichever engine LOCAL_EMBED_ENGINE selects."""
+    if LOCAL_EMBED_ENGINE == "fastembed":
+        from fastembed import TextEmbedding
+        print(f"\n🔢  Loading fastembed model '{LOCAL_EMBED_MODEL}' (ONNX, no torch)…")
+        model = TextEmbedding(model_name=LOCAL_EMBED_MODEL)
+        vectors = list(tqdm(model.embed(texts, batch_size=BATCH_SIZE), total=len(texts), desc="  Embedding"))
+        print(f"  ✓  dim={len(vectors[0])}\n")
+        return [v.tolist() for v in vectors]
+
+    from sentence_transformers import SentenceTransformer
+    print(f"\n🔢  Loading local embedding model '{LOCAL_EMBED_MODEL}'…")
+    model = SentenceTransformer(LOCAL_EMBED_MODEL)
+    print(f"  ✓  dim={model.get_sentence_embedding_dimension()}\n")
+    return model.encode(
+        texts, batch_size=BATCH_SIZE, show_progress_bar=True, normalize_embeddings=True,
+    ).tolist()
 
 
 def main() -> None:
@@ -76,16 +94,7 @@ def main() -> None:
     print(f"  ✓  {len(texts):,} chunks total")
 
     # ── Embed (local model — no quota, no keys) ───────────────────────────────
-    print(f"\n🔢  Loading local embedding model '{LOCAL_EMBED_MODEL}'…")
-    model = SentenceTransformer(LOCAL_EMBED_MODEL)
-    print(f"  ✓  dim={model.get_sentence_embedding_dimension()}\n")
-
-    embeddings = model.encode(
-        texts,
-        batch_size=BATCH_SIZE,
-        show_progress_bar=True,
-        normalize_embeddings=True,
-    ).tolist()
+    embeddings = _embed_all(texts)
 
     # ── Store in ChromaDB ──────────────────────────────────────────────────────
     print("\n💾  Storing in ChromaDB…")

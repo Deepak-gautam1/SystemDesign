@@ -3,7 +3,7 @@ services:
     name: sd-study-bot
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements-deploy.txt
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/status
     envVars:
@@ -11,6 +11,14 @@ services:
         value: 3.11.9
       - key: EMBED_BACKEND
         value: local
+      - key: LOCAL_EMBED_ENGINE
+        value: fastembed
+      - key: LOCAL_EMBED_MODEL
+        value: BAAI/bge-small-en-v1.5
+      - key: COLLECTION_LOCAL
+        value: system_design_deploy
+      # Optional — only used as a generation fallback if Groq is rate-limited.
+      # Embeddings no longer depend on Gemini for this deploy; leave blank if unused.
       - key: GEMINI_API_KEY_1
         sync: false
       - key: GEMINI_API_KEY_2
