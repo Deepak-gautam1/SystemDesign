@@ -70,6 +70,7 @@ export function Sidebar({
     >
       {/* Brand */}
       <div
+        data-tour="sidebar-brand"
         className={cn(
           "flex items-center border-b border-border shrink-0",
           collapsed ? "flex-col gap-2 py-3" : "gap-2.5 px-4 py-4"
@@ -97,6 +98,7 @@ export function Sidebar({
         </button>
 
         <button
+          data-tour="sidebar-collapse"
           onClick={onToggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -108,7 +110,7 @@ export function Sidebar({
 
       {/* Main nav */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin py-2">
-        <div className="px-2 py-1">
+        <div data-tour="sidebar-nav" className="px-2 py-1">
           {NAV_ITEMS.map(item => {
             const Icon = item.icon;
             const isActive = section === item.id;

@@ -1,6 +1,6 @@
 "use client";
 import {
-  Search, BookOpen, Target, Microscope, ChevronRight,
+  Search, BookOpen, Target, Microscope, ChevronRight, HelpCircle,
   LayoutDashboard, Building2, Code2, GitBranch,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -41,12 +41,14 @@ interface HeaderProps {
   search?:        string;
   onSearchChange?:(v: string) => void;
   showSearch?:    boolean;
+  onReplayTour?:  () => void;
 }
 
 export function Header({
   section, mode, onModeChange,
   doneCount, total, activeTopic,
   search, onSearchChange, showSearch,
+  onReplayTour,
 }: HeaderProps) {
   const inSystemDesign = section === "system-design";
   const meta = SECTION_META[section];
@@ -59,7 +61,7 @@ export function Header({
     )}>
 
       {/* ── Page title / breadcrumb — the one place "where am I" lives ── */}
-      <div className="flex items-center gap-2 min-w-0 shrink-0">
+      <div data-tour="header-crumb" className="flex items-center gap-2 min-w-0 shrink-0">
         <SectionIcon size={15} className={cn("shrink-0", meta.color)} />
         <span className={cn("text-[13px] font-semibold truncate", meta.color)}>
           {meta.label}
@@ -93,7 +95,7 @@ export function Header({
 
       {/* ── Mode tabs — ONLY in System Design ─────────────────────────── */}
       {inSystemDesign && (
-        <div className="flex items-center gap-0.5 bg-muted/60 border border-border rounded-xl p-1">
+        <div data-tour="header-modes" className="flex items-center gap-0.5 bg-muted/60 border border-border rounded-xl p-1">
           {MODES.map(({ id, label, Icon }) => (
             <button
               key={id}
@@ -131,8 +133,22 @@ export function Header({
         </div>
       )}
 
+      {/* ── Replay tour ───────────────────────────────────────────────── */}
+      {onReplayTour && (
+        <button
+          onClick={onReplayTour}
+          aria-label="Replay welcome tour"
+          title="Replay welcome tour"
+          className="flex items-center justify-center w-7 h-7 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <HelpCircle size={15} />
+        </button>
+      )}
+
       {/* ── Theme toggle ───────────────────────────────────────────────── */}
-      <ThemeToggle />
+      <div data-tour="theme-toggle">
+        <ThemeToggle />
+      </div>
     </header>
   );
 }

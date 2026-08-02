@@ -15,7 +15,7 @@ interface TheorySectionProps {
 
 export function TheorySection({ onSelectTopic }: TheorySectionProps) {
   return (
-    <div>
+    <div data-tour="theory-grid">
       {/* Intro + credit line */}
       <div className="mb-6 animate-fade-in">
         <p className="text-[12.5px] text-muted-foreground leading-relaxed max-w-2xl">

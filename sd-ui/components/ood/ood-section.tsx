@@ -102,7 +102,7 @@ export function OODSection() {
         </div>
 
         {/* Theory / Problems tab switcher */}
-        <div className="flex items-center gap-0.5 bg-muted/60 border border-border rounded-xl p-1 shrink-0">
+        <div data-tour="ood-tabs" className="flex items-center gap-0.5 bg-muted/60 border border-border rounded-xl p-1 shrink-0">
           <button
             onClick={() => setTab("theory")}
             className={cn(

@@ -88,6 +88,7 @@ export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDon
             {MODE_LABELS[mode]}
           </span>
           <button
+            data-tour="mark-done"
             onClick={() => onMarkDone(topic.id)}
             className={cn(
               "flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-all",
@@ -116,7 +117,7 @@ export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDon
                     ? <strong key={i} className="text-foreground font-semibold">{part}</strong>
                     : <span key={i}>{part}</span>
                 )}
-                <div className="flex flex-wrap gap-2 mt-3">
+                <div data-tour="chat-quick-starters" className="flex flex-wrap gap-2 mt-3">
                   {QUICK_STARTERS[mode].map(q => (
                     <button
                       key={q}
@@ -137,7 +138,7 @@ export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDon
       </div>
 
       {/* Input bar */}
-      <div className="shrink-0 px-4 py-3 border-t border-border bg-card">
+      <div data-tour="chat-input" className="shrink-0 px-4 py-3 border-t border-border bg-card">
         <div className={cn(
           "flex items-end gap-2 bg-muted/60 border rounded-xl px-3 py-2 transition-all",
           "focus-within:bg-background focus-within:border-primary/40 focus-within:shadow-glow"

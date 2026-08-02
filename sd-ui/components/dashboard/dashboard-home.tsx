@@ -101,7 +101,7 @@ export function DashboardHome({
         )}
 
         {/* ── Explore ──────────────────────────────────────────────────── */}
-        <section className="animate-fade-in">
+        <section className="animate-fade-in" data-tour="explore-cards">
           <h2 className="font-display font-bold text-[12px] uppercase tracking-widest text-muted-foreground mb-3">
             Explore
           </h2>
@@ -134,7 +134,7 @@ export function DashboardHome({
         </section>
 
         {/* ── Category breakdown ──────────────────────────────────────── */}
-        <section className="animate-fade-in pb-6">
+        <section className="animate-fade-in pb-6" data-tour="category-breakdown">
           <h2 className="font-display font-bold text-[12px] uppercase tracking-widest text-muted-foreground mb-3">
             System Design by category
           </h2>

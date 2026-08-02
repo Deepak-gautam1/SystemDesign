@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Header }          from "@/components/layout/header";
 import { Sidebar }         from "@/components/layout/sidebar";
 import { CategorySection } from "@/components/dashboard/category-section";
@@ -7,10 +7,13 @@ import { DashboardHome }   from "@/components/dashboard/dashboard-home";
 import { ChatInterface }   from "@/components/chat/chat-interface";
 import { OODSection }      from "@/components/ood/ood-section";
 import { ProgressRing }    from "@/components/ui/progress-ring";
+import { TourOverlay }     from "@/components/tour/tour-overlay";
 import { useProgress }     from "@/hooks/use-progress";
 import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 import { useRecentTopics } from "@/hooks/use-recent-topics";
+import { useTour }         from "@/hooks/use-tour";
 import { CATEGORIES, TOPICS, getCategoryById } from "@/lib/topics";
+import { DASHBOARD_TOUR_STEPS, CHAT_TOUR_STEPS, OOD_TOUR_STEPS } from "@/lib/tour-steps";
 import type { AppSection, Mode, Topic } from "@/lib/types";
 
 export default function HomePage() {
@@ -22,6 +25,13 @@ export default function HomePage() {
   const { progress, markDone, isDone, doneCount } = useProgress();
   const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useSidebarCollapsed();
   const { recentIds, addRecent } = useRecentTopics();
+
+  // Three independent, contextual tours — each auto-runs once, the first
+  // time its part of the app is reached, and never more than one at a time.
+  const tourDashboard = useTour("dashboard", DASHBOARD_TOUR_STEPS.length);
+  const tourChat      = useTour("chat", CHAT_TOUR_STEPS.length);
+  const tourOod       = useTour("ood", OOD_TOUR_STEPS.length);
+  const anyTourActive = tourDashboard.active || tourChat.active || tourOod.active;
 
   const recentTopics = useMemo(
     () => recentIds.map(id => TOPICS.find(t => t.id === id)).filter((t): t is Topic => !!t),
@@ -54,6 +64,36 @@ export default function HomePage() {
 
   const isInChat = section === "system-design" && chatTopic !== null;
 
+  // Dashboard tour: first thing a new visitor sees, on mount.
+  useEffect(() => {
+    if (anyTourActive) return;
+    return tourDashboard.autoStart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Chat tour: first time any topic's chat is opened.
+  useEffect(() => {
+    if (!isInChat || anyTourActive) return;
+    return tourChat.autoStart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInChat]);
+
+  // OOD tour: first time the OOD section is opened.
+  useEffect(() => {
+    if (section !== "ood" || anyTourActive) return;
+    return tourOod.autoStart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section]);
+
+  const activeTour =
+    tourDashboard.active ? { hook: tourDashboard, steps: DASHBOARD_TOUR_STEPS } :
+    tourChat.active      ? { hook: tourChat,      steps: CHAT_TOUR_STEPS }      :
+    tourOod.active       ? { hook: tourOod,       steps: OOD_TOUR_STEPS }       :
+    null;
+
+  // The "?" replay button always replays whichever tour fits where you are now.
+  const contextualTour = isInChat ? tourChat : section === "ood" ? tourOod : tourDashboard;
+
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
       <Header
@@ -66,6 +106,7 @@ export default function HomePage() {
         search={search}
         onSearchChange={setSearch}
         showSearch={section === "system-design" && !isInChat}
+        onReplayTour={contextualTour.start}
       />
 
       <div className="flex flex-1 min-h-0">
@@ -154,6 +195,15 @@ export default function HomePage() {
 
         </main>
       </div>
+
+      <TourOverlay
+        steps={activeTour?.steps ?? []}
+        active={!!activeTour}
+        stepIndex={activeTour?.hook.stepIndex ?? 0}
+        onNext={activeTour?.hook.next ?? (() => {})}
+        onPrev={activeTour?.hook.prev ?? (() => {})}
+        onEnd={activeTour?.hook.end ?? (() => {})}
+      />
     </div>
   );
 }
