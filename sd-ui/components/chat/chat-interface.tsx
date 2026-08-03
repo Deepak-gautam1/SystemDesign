@@ -36,12 +36,11 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDone }: ChatInterfaceProps) {
   const topicContext = `${topic.label}: ${topic.desc}. ${topic.prompt}`;
-  const { messages, streaming, sendMessage, clearMessages } = useChat(mode, topicContext);
+  const { messages, streaming, sendMessage } = useChat(mode, topic.id, topicContext);
   const [input, setInput] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
   const taRef  = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => { clearMessages(); }, [topic.id, mode, clearMessages]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   const handleSend = () => {

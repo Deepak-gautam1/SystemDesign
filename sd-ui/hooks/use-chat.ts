@@ -2,28 +2,43 @@
 import { useState, useCallback, useRef } from "react";
 import type { Message, Source } from "@/lib/types";
 import { streamChat } from "@/lib/api";
+import { sessionKey, loadChatSession, saveChatSession, clearChatSession } from "@/lib/chat-storage";
 
-export function useChat(mode: string, topic?: string) {
-  const [messages, setMessages] = useState<Message[]>([]);
+export function useChat(mode: string, topicId: string, topicContext?: string) {
+  const key = sessionKey(topicId, mode);
+
+  const [messages, setMessages] = useState<Message[]>(() => loadChatSession(key)?.messages ?? []);
   const [streaming, setStreaming] = useState(false);
-  const historyRef = useRef<Pick<Message, "role" | "content">[]>([]);
+  const historyRef = useRef<Pick<Message, "role" | "content">[]>(loadChatSession(key)?.history ?? []);
+
+  // Swap to the session for the new topic/mode as soon as `key` changes —
+  // done during render (React's sanctioned "reset state on prop change"
+  // pattern) so effects never see a mismatched (new key, old messages) pair.
+  const prevKeyRef = useRef(key);
+  if (prevKeyRef.current !== key) {
+    prevKeyRef.current = key;
+    const stored = loadChatSession(key);
+    setMessages(stored?.messages ?? []);
+    historyRef.current = stored?.history ?? [];
+  }
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || streaming) return;
 
     const userMsg: Message = { role: "user", content: text, sources: [] };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages(prev => {
+      const next = [...prev, userMsg, { role: "assistant" as const, content: "", sources: [], streaming: true }];
+      saveChatSession(key, next.slice(0, -1), historyRef.current); // save up to the user turn now
+      return next;
+    });
     historyRef.current = [...historyRef.current, { role: "user", content: text }];
-
-    // Placeholder assistant message
-    setMessages(prev => [...prev, { role: "assistant", content: "", sources: [], streaming: true }]);
     setStreaming(true);
 
     let fullContent = "";
     let finalSources: Source[] = [];
 
     try {
-      for await (const event of streamChat(text, mode, historyRef.current, topic)) {
+      for await (const event of streamChat(text, mode, historyRef.current, topicContext)) {
         if (event.type === "token" && event.text) {
           fullContent += event.text;
           setMessages(prev => {
@@ -45,6 +60,7 @@ export function useChat(mode: string, topic?: string) {
     } catch (err) {
       fullContent = `Connection error: ${err instanceof Error ? err.message : String(err)}`;
     } finally {
+      historyRef.current = [...historyRef.current, { role: "assistant", content: fullContent }];
       setMessages(prev => {
         const msgs = [...prev];
         msgs[msgs.length - 1] = {
@@ -53,17 +69,18 @@ export function useChat(mode: string, topic?: string) {
           sources: finalSources,
           streaming: false,
         };
+        saveChatSession(key, msgs, historyRef.current);
         return msgs;
       });
-      historyRef.current = [...historyRef.current, { role: "assistant", content: fullContent }];
       setStreaming(false);
     }
-  }, [mode, topic, streaming]);
+  }, [mode, topicContext, key, streaming]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
     historyRef.current = [];
-  }, []);
+    clearChatSession(key);
+  }, [key]);
 
   return { messages, streaming, sendMessage, clearMessages };
 }
