@@ -43,12 +43,13 @@ async function* readSSE(res: Response): AsyncGenerator<ChatEvent> {
 export async function* streamChat(
   query:   string,
   mode:    string,
-  history: Pick<Message, "role" | "content">[]
+  history: Pick<Message, "role" | "content">[],
+  topic?:  string
 ): AsyncGenerator<ChatEvent> {
   const res = await fetch(`${API_BASE}/api/chat`, {
     method:  "POST",
     headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ query, mode, history }),
+    body:    JSON.stringify({ query, mode, history, topic: topic ?? "" }),
   });
   yield* readSSE(res);
 }

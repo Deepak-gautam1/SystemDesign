@@ -298,6 +298,7 @@ class RAGEngine:
         mode:    str,
         history: list[dict],
         chunks:  list[dict],
+        topic:   str = "",
     ):
         """
         Generator — yields text tokens.
@@ -310,7 +311,7 @@ class RAGEngine:
 
         # ── 1. Groq (proper chat messages format) ─────────────────────────────
         if self._groq:
-            messages = self._build_groq_messages(query, mode, history, context)
+            messages = self._build_groq_messages(query, mode, history, context, topic)
             groq_ok  = False
 
             for model in GROQ_MODELS:
@@ -347,7 +348,7 @@ class RAGEngine:
             # All Groq models rate-limited → fall through to Gemini
 
         # ── 2. Gemini fallback ────────────────────────────────────────────────
-        prompt  = self._build_gemini_prompt(query, mode, history, context)
+        prompt  = self._build_gemini_prompt(query, mode, history, context, topic)
         ordered = []
         if self._gen_model:
             ordered.append(self._gen_model)
@@ -397,14 +398,16 @@ class RAGEngine:
         mode:    str,
         history: list[dict],
         context: str,
+        topic:   str = "",
     ) -> list[dict]:
         """Build OpenAI-compatible messages list for Groq."""
         system = _PROMPTS.get(mode, _PROMPTS["study"])
+        anchor = f"CURRENT TOPIC: {topic}\nStay focused on this topic for every question, follow-up, and debrief — do not drift to a different system design topic even if the retrieved book context mentions one.\n\n" if topic else ""
 
         messages = [
             {
                 "role":    "system",
-                "content": f"{system}\n\nBOOK CONTEXT (top relevant sections):\n{context}",
+                "content": f"{system}\n\n{anchor}BOOK CONTEXT (top relevant sections):\n{context}",
             }
         ]
 
@@ -423,9 +426,11 @@ class RAGEngine:
         mode:    str,
         history: list[dict],
         context: str,
+        topic:   str = "",
     ) -> str:
         """Build single-string prompt for Gemini (non-chat API)."""
         system = _PROMPTS.get(mode, _PROMPTS["study"])
+        anchor = f"CURRENT TOPIC: {topic}\nStay focused on this topic for every question, follow-up, and debrief — do not drift to a different system design topic even if the retrieved book context mentions one.\n\n" if topic else ""
         hist   = ""
         if history:
             hist = "\n\nCONVERSATION HISTORY:\n"
@@ -435,6 +440,7 @@ class RAGEngine:
                 hist   += f"{role}: {content}\n"
         return (
             f"{system}\n\n"
+            f"{anchor}"
             f"BOOK CONTEXT:\n{context}"
             f"{hist}\n\n"
             f"Student: {query}\nTutor:"

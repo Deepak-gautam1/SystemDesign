@@ -38,7 +38,7 @@ function AIMessage({ msg }: { msg: Message }) {
   return (
     <div className="flex gap-2.5 animate-slide-up">
       <AIAvatar />
-      <div className="flex-1 min-w-0 max-w-[640px]">
+      <div className="flex-1 min-w-0 max-w-[min(85%,900px)]">
         <div
           ref={ref}
           className={cn(
@@ -56,7 +56,7 @@ function UserMessage({ msg }: { msg: Message }) {
   return (
     <div className="flex gap-2.5 flex-row-reverse animate-slide-up">
       <UserAvatar />
-      <div className="max-w-[520px] bg-primary/10 border border-primary/20 rounded-xl rounded-tr-sm px-4 py-3 text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+      <div className="max-w-[min(70%,700px)] bg-primary/10 border border-primary/20 rounded-xl rounded-tr-sm px-4 py-3 text-sm text-foreground whitespace-pre-wrap leading-relaxed">
         {msg.content}
       </div>
     </div>

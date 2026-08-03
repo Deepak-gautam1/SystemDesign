@@ -88,6 +88,7 @@ class ChatRequest(BaseModel):
     query:   str
     mode:    str        = "study"
     history: list[dict] = []
+    topic:   str        = ""
 
 
 class EvaluateRequest(BaseModel):
@@ -120,9 +121,10 @@ async def chat(req: ChatRequest):
 
     def stream():
         try:
-            chunks = _rag.retrieve(req.query)
+            retrieval_query = f"{req.topic}. {req.query}" if req.topic else req.query
+            chunks = _rag.retrieve(retrieval_query)
             yield f"data: {json.dumps({'type': 'sources', 'data': chunks})}\n\n"
-            for token in _rag.stream_answer(req.query, req.mode, req.history, chunks):
+            for token in _rag.stream_answer(req.query, req.mode, req.history, chunks, req.topic):
                 yield f"data: {json.dumps({'type': 'token', 'text': token})}\n\n"
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
         except Exception as exc:

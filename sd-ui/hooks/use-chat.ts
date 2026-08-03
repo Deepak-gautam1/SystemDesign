@@ -3,7 +3,7 @@ import { useState, useCallback, useRef } from "react";
 import type { Message, Source } from "@/lib/types";
 import { streamChat } from "@/lib/api";
 
-export function useChat(mode: string) {
+export function useChat(mode: string, topic?: string) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [streaming, setStreaming] = useState(false);
   const historyRef = useRef<Pick<Message, "role" | "content">[]>([]);
@@ -23,7 +23,7 @@ export function useChat(mode: string) {
     let finalSources: Source[] = [];
 
     try {
-      for await (const event of streamChat(text, mode, historyRef.current)) {
+      for await (const event of streamChat(text, mode, historyRef.current, topic)) {
         if (event.type === "token" && event.text) {
           fullContent += event.text;
           setMessages(prev => {
@@ -58,7 +58,7 @@ export function useChat(mode: string) {
       historyRef.current = [...historyRef.current, { role: "assistant", content: fullContent }];
       setStreaming(false);
     }
-  }, [mode, streaming]);
+  }, [mode, topic, streaming]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);

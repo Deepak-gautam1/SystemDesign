@@ -35,7 +35,8 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDone }: ChatInterfaceProps) {
-  const { messages, streaming, sendMessage, clearMessages } = useChat(mode);
+  const topicContext = `${topic.label}: ${topic.desc}. ${topic.prompt}`;
+  const { messages, streaming, sendMessage, clearMessages } = useChat(mode, topicContext);
   const [input, setInput] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
   const taRef  = useRef<HTMLTextAreaElement>(null);
@@ -110,7 +111,7 @@ export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDon
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-violet-500/20 border-[1.5px] border-primary/30 flex items-center justify-center shrink-0 ring-2 ring-primary/10">
               <Icons.Building2 size={14} className="text-primary" />
             </div>
-            <div className="max-w-[600px]">
+            <div className="max-w-[min(85%,900px)]">
               <div className="rounded-xl rounded-tl-sm bg-card border border-border px-4 py-3 text-sm text-muted-foreground leading-relaxed">
                 {INTRO[mode].split("**").map((part, i) =>
                   i % 2 === 1
