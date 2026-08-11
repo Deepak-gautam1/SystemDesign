@@ -8,6 +8,8 @@ import { ChatInterface }   from "@/components/chat/chat-interface";
 import { OODSection }      from "@/components/ood/ood-section";
 import { ProgressRing }    from "@/components/ui/progress-ring";
 import { TourOverlay }     from "@/components/tour/tour-overlay";
+import { WelcomeScreen }   from "@/components/auth/welcome-screen";
+import { useGuestMode }    from "@/hooks/use-guest-mode";
 import { useProgress }     from "@/hooks/use-progress";
 import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 import { useRecentTopics } from "@/hooks/use-recent-topics";
@@ -22,6 +24,7 @@ export default function HomePage() {
   const [search, setSearch]       = useState("");
   const [chatTopic, setChatTopic] = useState<Topic | null>(null);
 
+  const { ready, needsWelcome, enterGuest, isGuest } = useGuestMode();
   const { progress, markDone, isDone, doneCount } = useProgress();
   const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useSidebarCollapsed();
   const { recentIds, addRecent } = useRecentTopics();
@@ -64,26 +67,31 @@ export default function HomePage() {
 
   const isInChat = section === "system-design" && chatTopic !== null;
 
-  // Dashboard tour: first thing a new visitor sees, on mount.
+  // Tours must not fire while the welcome screen is up: autoStart marks a tour
+  // as seen, so it would burn the dashboard tour behind a screen the user can't
+  // see it on. `appVisible` holds them until a choice has been made.
+  const appVisible = ready && !needsWelcome;
+
+  // Dashboard tour: first thing a new visitor sees, once they're in the app.
   useEffect(() => {
-    if (anyTourActive) return;
+    if (!appVisible || anyTourActive) return;
     return tourDashboard.autoStart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [appVisible]);
 
   // Chat tour: first time any topic's chat is opened.
   useEffect(() => {
-    if (!isInChat || anyTourActive) return;
+    if (!appVisible || !isInChat || anyTourActive) return;
     return tourChat.autoStart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInChat]);
+  }, [isInChat, appVisible]);
 
   // OOD tour: first time the OOD section is opened.
   useEffect(() => {
-    if (section !== "ood" || anyTourActive) return;
+    if (!appVisible || section !== "ood" || anyTourActive) return;
     return tourOod.autoStart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [section]);
+  }, [section, appVisible]);
 
   const activeTour =
     tourDashboard.active ? { hook: tourDashboard, steps: DASHBOARD_TOUR_STEPS } :
@@ -93,6 +101,16 @@ export default function HomePage() {
 
   // The "?" replay button always replays whichever tour fits where you are now.
   const contextualTour = isInChat ? tourChat : section === "ood" ? tourOod : tourDashboard;
+
+  // Hold the first paint until the session is resolved — rendering the welcome
+  // screen and then yanking it away for an already-signed-in user reads as a bug.
+  if (!ready) {
+    return <div className="h-screen bg-background" />;
+  }
+
+  if (needsWelcome) {
+    return <WelcomeScreen onExploreAsGuest={enterGuest} />;
+  }
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
@@ -107,6 +125,7 @@ export default function HomePage() {
         onSearchChange={setSearch}
         showSearch={section === "system-design" && !isInChat}
         onReplayTour={contextualTour.start}
+        isGuest={isGuest}
       />
 
       <div className="flex flex-1 min-h-0">

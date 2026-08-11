@@ -43,13 +43,14 @@ interface HeaderProps {
   onSearchChange?:(v: string) => void;
   showSearch?:    boolean;
   onReplayTour?:  () => void;
+  isGuest?:       boolean;
 }
 
 export function Header({
   section, mode, onModeChange,
   doneCount, total, activeTopic,
   search, onSearchChange, showSearch,
-  onReplayTour,
+  onReplayTour, isGuest,
 }: HeaderProps) {
   const inSystemDesign = section === "system-design";
   const meta = SECTION_META[section];
@@ -163,14 +164,25 @@ export function Header({
           <span className="hidden lg:inline">Sign out</span>
         </button>
       ) : authStatus === "unauthenticated" ? (
-        <button
-          onClick={() => signIn("google")}
-          title="Sign in with Google to save your chat history across devices"
-          className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground px-2.5 h-7 rounded-lg border border-border hover:border-border/80 transition-colors"
-        >
-          <LogIn size={12} />
-          <span className="hidden lg:inline">Sign in</span>
-        </button>
+        <>
+          {/* Guests should always know their work isn't being kept. */}
+          {isGuest && (
+            <span
+              title="You're browsing as a guest — this chat lives only in this tab and is not saved."
+              className="hidden sm:inline text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border"
+            >
+              Guest · not saved
+            </span>
+          )}
+          <button
+            onClick={() => signIn("google")}
+            title="Sign in with Google to save your chat history across devices"
+            className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 h-7 rounded-lg border transition-colors border-primary/30 text-primary hover:bg-primary/10"
+          >
+            <LogIn size={12} />
+            <span className="hidden lg:inline">{isGuest ? "Sign in to save" : "Sign in"}</span>
+          </button>
+        </>
       ) : null}
 
       {/* ── Theme toggle ───────────────────────────────────────────────── */}
