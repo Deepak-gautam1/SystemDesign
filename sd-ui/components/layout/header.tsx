@@ -1,9 +1,10 @@
 "use client";
 import {
   Search, BookOpen, Target, Microscope, ChevronRight, HelpCircle,
-  LayoutDashboard, Building2, Code2, GitBranch,
+  LayoutDashboard, Building2, Code2, GitBranch, LogIn, LogOut,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useSession, signIn, signOut } from "next-auth/react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { AppSection, Mode, Topic } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,7 @@ export function Header({
   const inSystemDesign = section === "system-design";
   const meta = SECTION_META[section];
   const SectionIcon = meta.Icon;
+  const { data: authSession, status: authStatus } = useSession();
 
   return (
     <header className={cn(
@@ -144,6 +146,32 @@ export function Header({
           <HelpCircle size={15} />
         </button>
       )}
+
+      {/* ── Sign in — enables cross-device chat history ──────────────────── */}
+      {authStatus === "authenticated" ? (
+        <button
+          onClick={() => signOut()}
+          title={`Signed in as ${authSession?.user?.email ?? "you"} — click to sign out`}
+          className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground px-2 h-7 rounded-lg hover:bg-muted transition-colors"
+        >
+          {authSession?.user?.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={authSession.user.image} alt="" className="w-5 h-5 rounded-full" />
+          ) : (
+            <LogOut size={13} />
+          )}
+          <span className="hidden lg:inline">Sign out</span>
+        </button>
+      ) : authStatus === "unauthenticated" ? (
+        <button
+          onClick={() => signIn("google")}
+          title="Sign in with Google to save your chat history across devices"
+          className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground px-2.5 h-7 rounded-lg border border-border hover:border-border/80 transition-colors"
+        >
+          <LogIn size={12} />
+          <span className="hidden lg:inline">Sign in</span>
+        </button>
+      ) : null}
 
       {/* ── Theme toggle ───────────────────────────────────────────────── */}
       <div data-tour="theme-toggle">

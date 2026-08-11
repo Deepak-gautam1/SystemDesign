@@ -44,12 +44,13 @@ export async function* streamChat(
   query:   string,
   mode:    string,
   history: Pick<Message, "role" | "content">[],
-  topic?:  string
+  topic?:  string,
+  topicId?: string
 ): AsyncGenerator<ChatEvent> {
   const res = await fetch(`${API_BASE}/api/chat`, {
     method:  "POST",
     headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ query, mode, history, topic: topic ?? "" }),
+    body:    JSON.stringify({ query, mode, history, topic: topic ?? "", topicId: topicId ?? "" }),
   });
   yield* readSSE(res);
 }

@@ -1,36 +1,62 @@
 "use client";
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import type { Message, Source } from "@/lib/types";
 import { streamChat } from "@/lib/api";
 import { sessionKey, loadChatSession, saveChatSession, clearChatSession } from "@/lib/chat-storage";
 
 export function useChat(mode: string, topicId: string, topicContext?: string) {
   const key = sessionKey(topicId, mode);
+  const { status } = useSession();
 
-  const [messages, setMessages] = useState<Message[]>(() => loadChatSession(key)?.messages ?? []);
+  const [messages, setMessages]   = useState<Message[]>([]);
   const [streaming, setStreaming] = useState(false);
-  const historyRef = useRef<Pick<Message, "role" | "content">[]>(loadChatSession(key)?.history ?? []);
+  const historyRef = useRef<Pick<Message, "role" | "content">[]>([]);
 
-  // Swap to the session for the new topic/mode as soon as `key` changes —
-  // done during render (React's sanctioned "reset state on prop change"
-  // pattern) so effects never see a mismatched (new key, old messages) pair.
-  const prevKeyRef = useRef(key);
-  if (prevKeyRef.current !== key) {
-    prevKeyRef.current = key;
+  // Which key the state currently reflects. Also gates the save effect below so
+  // a not-yet-hydrated (empty) state can't overwrite a stored conversation.
+  const hydratedKey = useRef<string | null>(null);
+
+  // Load the conversation for this topic+mode: sessionStorage first (instant,
+  // works for everyone), then — if signed in — overlay whatever's saved in
+  // Postgres, since that's the durable cross-device copy. A guest, or a
+  // signed-in user with nothing saved yet, just keeps the local copy.
+  useEffect(() => {
+    let cancelled = false;
     const stored = loadChatSession(key);
-    setMessages(stored?.messages ?? []);
     historyRef.current = stored?.history ?? [];
-  }
+    setMessages(stored?.messages ?? []);
+    hydratedKey.current = key;
+
+    if (status === "authenticated") {
+      fetch(`/api/history?topicId=${encodeURIComponent(topicId)}&mode=${encodeURIComponent(mode)}`)
+        .then(r => r.json())
+        .then((data: { messages?: Message[] }) => {
+          if (cancelled || !data.messages?.length) return;
+          setMessages(data.messages);
+          historyRef.current = data.messages.map(m => ({ role: m.role, content: m.content }));
+        })
+        .catch(() => {});
+    }
+    return () => { cancelled = true; };
+  }, [key, status, topicId, mode]);
+
+  // Persist at rest only — a half-streamed answer isn't worth saving, and this
+  // keeps writes to once per completed exchange instead of once per token.
+  useEffect(() => {
+    if (streaming || hydratedKey.current !== key) return;
+    saveChatSession(key, messages, historyRef.current);
+  }, [messages, streaming, key]);
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || streaming) return;
 
     const userMsg: Message = { role: "user", content: text, sources: [] };
-    setMessages(prev => {
-      const next = [...prev, userMsg, { role: "assistant" as const, content: "", sources: [], streaming: true }];
-      saveChatSession(key, next.slice(0, -1), historyRef.current); // save up to the user turn now
-      return next;
-    });
+    setMessages(prev => [
+      ...prev,
+      userMsg,
+      { role: "assistant", content: "", sources: [], streaming: true },
+    ]);
     historyRef.current = [...historyRef.current, { role: "user", content: text }];
     setStreaming(true);
 
@@ -38,7 +64,7 @@ export function useChat(mode: string, topicId: string, topicContext?: string) {
     let finalSources: Source[] = [];
 
     try {
-      for await (const event of streamChat(text, mode, historyRef.current, topicContext)) {
+      for await (const event of streamChat(text, mode, historyRef.current, topicContext, topicId)) {
         if (event.type === "token" && event.text) {
           fullContent += event.text;
           setMessages(prev => {
@@ -69,12 +95,11 @@ export function useChat(mode: string, topicId: string, topicContext?: string) {
           sources: finalSources,
           streaming: false,
         };
-        saveChatSession(key, msgs, historyRef.current);
         return msgs;
       });
-      setStreaming(false);
+      setStreaming(false);   // flips the save effect back on, persisting the exchange
     }
-  }, [mode, topicContext, key, streaming]);
+  }, [mode, topicId, topicContext, streaming]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);

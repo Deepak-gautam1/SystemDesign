@@ -59,13 +59,13 @@ export const CHAT_TOUR_STEPS: TourStep[] = [
   {
     target: "header-modes",
     title: "Three ways to study each topic",
-    body: "Study explains the concept clearly with tradeoffs. Quiz drills you like a real interviewer — it won't just hand you the answer. Deep Dive walks the full architecture end to end, including what breaks at 10× scale. Switch anytime, even mid-conversation — it starts a fresh chat in the new mode.",
+    body: "Study walks you through the topic step by step. Quiz drills you like a real interviewer — it won't just hand you the answer. Deep Dive covers the full architecture end to end, including what breaks at 10× scale. Switch anytime: each mode keeps its own conversation, so you can duck into Study for a quick question and come back to find Deep Dive exactly where you left it.",
     placement: "bottom",
   },
   {
     target: "chat-quick-starters",
-    title: "Quick starters, or ask your own thing",
-    body: "Tap a suggestion to jump in, or type below. Every answer shows which book pages or repo docs it drew from — look for “N sources referenced” under the response.",
+    title: "Follow the path, or ask your own thing",
+    body: "In Study mode this is your route through the topic — requirements, estimates, architecture, schema, scaling, tradeoffs. Tap the highlighted step to continue, or jump to any step. You can always type your own question below instead. Every answer shows which book pages or repo docs it drew from — look for “N sources referenced” under the response.",
     placement: "top",
   },
   {

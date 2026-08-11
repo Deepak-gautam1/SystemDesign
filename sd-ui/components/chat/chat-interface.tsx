@@ -4,6 +4,7 @@ import * as Icons from "lucide-react";
 import { ArrowLeft, CheckCircle2, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./message-bubble";
+import { StudyPath } from "./study-path";
 import { useChat } from "@/hooks/use-chat";
 import type { Topic, Category, Mode } from "@/lib/types";
 
@@ -117,23 +118,39 @@ export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDon
                     ? <strong key={i} className="text-foreground font-semibold">{part}</strong>
                     : <span key={i}>{part}</span>
                 )}
-                <div data-tour="chat-quick-starters" className="flex flex-wrap gap-2 mt-3">
-                  {QUICK_STARTERS[mode].map(q => (
-                    <button
-                      key={q}
-                      onClick={() => sendMessage(q)}
-                      className="text-xs px-3 py-1.5 rounded-full bg-muted border border-border text-muted-foreground hover:bg-primary/8 hover:border-primary/25 hover:text-primary transition-all"
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
+                {/* Study mode is guided by the StudyPath ladder below, so it
+                    doesn't need loose starters here. */}
+                {mode !== "study" && (
+                  <div data-tour="chat-quick-starters" className="flex flex-wrap gap-2 mt-3">
+                    {QUICK_STARTERS[mode].map(q => (
+                      <button
+                        key={q}
+                        onClick={() => sendMessage(q)}
+                        className="text-xs px-3 py-1.5 rounded-full bg-muted border border-border text-muted-foreground hover:bg-primary/8 hover:border-primary/25 hover:text-primary transition-all"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
 
         {messages.map((msg, i) => <MessageBubble key={i} msg={msg} />)}
+
+        {/* Guided path — always at the foot of the thread in Study mode, so the
+            next step is one tap away without blocking free-form questions. */}
+        {mode === "study" && (
+          <StudyPath
+            topic={topic}
+            messages={messages}
+            disabled={streaming}
+            onPick={sendMessage}
+          />
+        )}
+
         <div ref={endRef} />
       </div>
 
