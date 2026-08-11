@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import * as Icons from "lucide-react";
-import { ArrowLeft, CheckCircle2, Send } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Send, Eraser, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./message-bubble";
 import { StudyPath } from "./study-path";
@@ -37,12 +37,19 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDone }: ChatInterfaceProps) {
   const topicContext = `${topic.label}: ${topic.desc}. ${topic.prompt}`;
-  const { messages, streaming, sendMessage } = useChat(mode, topic.id, topicContext);
+  const {
+    messages, streaming, sendMessage,
+    clearScreen, deleteEverything, signedIn, hasMessages,
+  } = useChat(mode, topic.id, topicContext);
   const [input, setInput] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const taRef  = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  // Never leave a confirmation prompt hanging when the context changes under it.
+  useEffect(() => { setConfirmDelete(false); }, [topic.id, mode]);
 
   const handleSend = () => {
     const text = input.trim();
@@ -88,6 +95,58 @@ export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDon
           <span className={cn("text-[11px] font-mono font-semibold px-2.5 py-1 rounded-full border", MODE_CLASSES[mode])}>
             {MODE_LABELS[mode]}
           </span>
+
+          {/* Clear — fresh screen for another attempt; saved copy kept. */}
+          {hasMessages && !confirmDelete && (
+            <button
+              onClick={clearScreen}
+              disabled={streaming}
+              title={signedIn
+                ? "Clear the screen and start a new attempt. Your previous attempt stays saved."
+                : "Clear the screen and start over."}
+              className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Eraser size={12} />
+              <span className="hidden lg:inline">Clear</span>
+            </button>
+          )}
+
+          {/* Permanent delete — two-step, since it can't be undone. */}
+          {(hasMessages || confirmDelete) && (
+            confirmDelete ? (
+              <div className="flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-lg border border-rose-500/30 bg-rose-500/5">
+                <span className="text-[11px] text-rose-600 dark:text-rose-400">
+                  Delete {signedIn ? "saved history" : "this chat"} permanently?
+                </span>
+                <button
+                  onClick={async () => { await deleteEverything(); setConfirmDelete(false); }}
+                  className="text-[11px] font-semibold px-2 py-1 rounded-md bg-rose-500/15 text-rose-600 dark:text-rose-400 hover:bg-rose-500/25 transition-colors"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  aria-label="Cancel delete"
+                  className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                disabled={streaming}
+                title={signedIn
+                  ? "Permanently delete every saved attempt for this topic and mode"
+                  : "Permanently delete this conversation"}
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:border-rose-500/30 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Trash2 size={12} />
+                <span className="hidden lg:inline">Delete</span>
+              </button>
+            )
+          )}
+
           <button
             data-tour="mark-done"
             onClick={() => onMarkDone(topic.id)}

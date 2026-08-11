@@ -13,8 +13,9 @@ const BACKEND = process.env.API_URL || "http://localhost:8000";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { query, mode, history, topic, topicId } = body as {
-    query: string; mode: string; history: unknown; topic?: string; topicId?: string;
+  const { query, mode, history, topic, topicId, attemptId } = body as {
+    query: string; mode: string; history: unknown;
+    topic?: string; topicId?: string; attemptId?: string;
   };
 
   // Never trust a client-supplied user id — this is the only identity that
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
         controller.close();
         if (userId && topicId) {
           try {
-            await appendExchange(userId, topicId, mode, query, fullText, sources);
+            await appendExchange(userId, topicId, mode, query, fullText, sources, attemptId);
           } catch (err) {
             console.error("chat history persist failed:", err);
           }

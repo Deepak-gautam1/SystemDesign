@@ -45,14 +45,31 @@ export async function* streamChat(
   mode:    string,
   history: Pick<Message, "role" | "content">[],
   topic?:  string,
-  topicId?: string
+  topicId?: string,
+  attemptId?: string
 ): AsyncGenerator<ChatEvent> {
   const res = await fetch(`${API_BASE}/api/chat`, {
     method:  "POST",
     headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ query, mode, history, topic: topic ?? "", topicId: topicId ?? "" }),
+    body:    JSON.stringify({
+      query, mode, history,
+      topic:     topic     ?? "",
+      topicId:   topicId   ?? "",
+      attemptId: attemptId ?? "",
+    }),
   });
   yield* readSSE(res);
+}
+
+/** Permanently delete every saved attempt for a topic+mode (signed-in only). */
+export async function deleteSavedHistory(topicId: string, mode: string): Promise<number> {
+  const res = await fetch(
+    `/api/history?topicId=${encodeURIComponent(topicId)}&mode=${encodeURIComponent(mode)}`,
+    { method: "DELETE" }
+  );
+  if (!res.ok) return 0;
+  const data = await res.json().catch(() => ({ deleted: 0 }));
+  return data.deleted ?? 0;
 }
 
 // ── Code evaluation ───────────────────────────────────────────────────────
