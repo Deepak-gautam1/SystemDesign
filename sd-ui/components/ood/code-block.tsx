@@ -93,7 +93,7 @@ export function CppCodeBlock({ code }: { code: string }) {
   }
 
   return (
-    <pre className="text-[12.5px] font-mono leading-[1.65] bg-zinc-950 text-zinc-200 rounded-xl p-5 overflow-auto h-full">
+    <pre className="text-[12.5px] font-mono leading-[1.65] bg-slate-950 text-slate-200 rounded-xl p-5 overflow-auto h-full">
       <code>{parts}</code>
     </pre>
   );

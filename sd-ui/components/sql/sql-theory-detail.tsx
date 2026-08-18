@@ -76,9 +76,9 @@ export function SqlTheoryDetail({ topic, category, onBack, prev, next, onNavigat
         </div>
 
         {topic.code && (
-          <div className="flex-1 min-w-0 flex flex-col bg-zinc-950 overflow-hidden">
-            <div className="shrink-0 flex items-center px-4 py-2 bg-zinc-900 border-b border-zinc-800">
-              <span className="font-mono text-[11px] text-zinc-400">{topic.codeLabel ?? "example.sql"}</span>
+          <div className="flex-1 min-w-0 flex flex-col bg-slate-950 overflow-hidden">
+            <div className="shrink-0 flex items-center px-4 py-2 bg-slate-900 border-b border-slate-800">
+              <span className="font-mono text-[11px] text-slate-400">{topic.codeLabel ?? "example.sql"}</span>
             </div>
             <div className="flex-1 overflow-auto p-4">
               <SqlCodeBlock code={topic.code} />

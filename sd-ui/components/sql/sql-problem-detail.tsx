@@ -30,7 +30,7 @@ function CopyButton({ code }: { code: string }) {
   return (
     <button
       onClick={() => { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="flex items-center gap-1.5 text-[11px] text-zinc-400 hover:text-zinc-200 transition-colors px-2 py-1 rounded"
+      className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-200 transition-colors px-2 py-1 rounded"
     >
       {copied ? <><Check size={11} className="text-emerald-400" /> Copied</> : <><Copy size={11} /> Copy</>}
     </button>
@@ -57,15 +57,15 @@ function EvalPanel({
 
   return (
     <div className={cn(
-      "shrink-0 border-t border-zinc-700 bg-zinc-900 flex flex-col transition-all duration-200",
+      "shrink-0 border-t border-slate-700 bg-slate-900 flex flex-col transition-all duration-200",
       collapsed ? "h-10" : "h-[42%]"
     )}>
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-2 bg-zinc-800 border-b border-zinc-700 shrink-0">
+      <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700 shrink-0">
         {loading
           ? <Loader2 size={13} className="text-sky-400 animate-spin" />
           : <Sparkles size={13} className="text-sky-400" />}
-        <span className="text-[11px] font-mono text-zinc-300 font-semibold">AI Query Review</span>
+        <span className="text-[11px] font-mono text-slate-300 font-semibold">AI Query Review</span>
 
         {/* Score badge */}
         {score !== null && !loading && (
@@ -81,11 +81,11 @@ function EvalPanel({
 
         <div className="ml-auto flex items-center gap-1">
           <button onClick={() => setCollapsed(c => !c)}
-            className="p-1 rounded text-zinc-500 hover:text-zinc-300 transition-colors">
+            className="p-1 rounded text-slate-500 hover:text-slate-300 transition-colors">
             <ChevronDown size={13} className={cn("transition-transform", collapsed && "rotate-180")} />
           </button>
           <button onClick={onClose}
-            className="p-1 rounded text-zinc-500 hover:text-zinc-300 transition-colors">
+            className="p-1 rounded text-slate-500 hover:text-slate-300 transition-colors">
             <X size={13} />
           </button>
         </div>
@@ -95,7 +95,7 @@ function EvalPanel({
       {!collapsed && (
         <div ref={ref} className="flex-1 overflow-y-auto p-4 text-sm">
           {loading && !result && (
-            <div className="flex items-center gap-2 text-zinc-400 text-xs">
+            <div className="flex items-center gap-2 text-slate-400 text-xs">
               <Loader2 size={12} className="animate-spin" /> Analysing your query…
             </div>
           )}
@@ -104,7 +104,7 @@ function EvalPanel({
           )}
           {result && (
             <div
-              className="prose-chat text-zinc-200 leading-relaxed"
+              className="prose-chat text-slate-200 leading-relaxed"
               dangerouslySetInnerHTML={{
                 __html: (marked.parse(result) as string) +
                   (loading ? '<span class="inline-block w-[2px] h-3.5 bg-sky-400 ml-0.5 align-middle rounded-sm animate-pulse"></span>' : "")
@@ -267,10 +267,10 @@ export function SqlProblemDetail({ problem, onBack }: SqlProblemDetailProps) {
         </div>
 
         {/* RIGHT: Code + eval panel */}
-        <div className="flex-1 min-w-0 flex flex-col bg-zinc-950 overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col bg-slate-950 overflow-hidden">
           {/* Code toolbar */}
-          <div className="shrink-0 flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800">
-            <span className="font-mono text-[11px] text-zinc-400">
+          <div className="shrink-0 flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-800">
+            <span className="font-mono text-[11px] text-slate-400">
               {panelMode==="learn" ? problem.filename : "practice.sql"}
             </span>
             <div className="flex items-center gap-2">
@@ -280,7 +280,7 @@ export function SqlProblemDetail({ problem, onBack }: SqlProblemDetailProps) {
                   <button onClick={() => setShowSolution(s=>!s)}
                     className={cn("flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border transition-all",
                       showSolution ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25"
-                                   : "text-zinc-400 border-zinc-700 hover:border-zinc-500 hover:text-zinc-200")}>
+                                   : "text-slate-400 border-slate-700 hover:border-slate-500 hover:text-slate-200")}>
                     <Eye size={11} /> {showSolution ? "Hide solution" : "Reveal solution"}
                   </button>
 
@@ -292,7 +292,7 @@ export function SqlProblemDetail({ problem, onBack }: SqlProblemDetailProps) {
                       "flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-lg border font-medium transition-all",
                       hasUserCode && !evalLoading
                         ? "bg-sky-500/15 text-sky-400 border-sky-500/30 hover:bg-sky-500/25"
-                        : "text-zinc-600 border-zinc-800 cursor-not-allowed"
+                        : "text-slate-600 border-slate-800 cursor-not-allowed"
                     )}
                     title={!hasUserCode ? "Write a query first" : "Evaluate with AI"}
                   >
@@ -324,7 +324,7 @@ export function SqlProblemDetail({ problem, onBack }: SqlProblemDetailProps) {
                   value={practiceCode}
                   onChange={e => setPracticeCode(e.target.value)}
                   spellCheck={false}
-                  className="w-full h-full bg-zinc-950 text-zinc-100 font-mono text-[12.5px] leading-[1.65] p-5 outline-none resize-none border-0"
+                  className="w-full h-full bg-slate-950 text-slate-100 font-mono text-[12.5px] leading-[1.65] p-5 outline-none resize-none border-0"
                   style={{ tabSize: 4 }}
                 />
               )}

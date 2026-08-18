@@ -40,28 +40,35 @@
     --cat-adv:   13  93% 54%;
   }
 
+  /* Dark theme — a deliberate deep-navy, not a neutral black. The blue hue
+     was always here (224), but at 5% lightness there's almost no room for
+     chroma, so it read as near-black (#070A13). Lifting the surfaces a
+     couple of points and raising saturation lets the blue actually show,
+     and incidentally fixes two contrast problems: cards were nearly
+     indistinguishable from the page behind them (1.05 separation), and
+     muted body text sat at a marginal 4.94 ratio. */
   .dark {
-    --background:        224 48% 5%;
-    --foreground:        210 40% 96%;
-    --card:              224 40% 8%;
-    --card-foreground:   210 40% 96%;
-    --popover:           224 40% 8%;
-    --popover-foreground: 210 40% 96%;
+    --background:        222 52% 7%;
+    --foreground:        213 40% 97%;
+    --card:              222 44% 13%;
+    --card-foreground:   213 40% 97%;
+    --popover:           222 44% 13%;
+    --popover-foreground: 213 40% 97%;
 
-    --primary:           230 65% 65%;
-    --primary-foreground: 224 71% 4%;
-    --secondary:         224 30% 13%;
-    --secondary-foreground: 210 40% 80%;
-    --muted:             224 30% 13%;
-    --muted-foreground:  215 20% 52%;
-    --accent:            262 70% 70%;
-    --accent-foreground: 224 71% 4%;
-    --destructive:       0 62% 40%;
-    --destructive-foreground: 210 40% 96%;
+    --primary:           230 72% 68%;
+    --primary-foreground: 222 60% 6%;
+    --secondary:         221 34% 18%;
+    --secondary-foreground: 213 35% 84%;
+    --muted:             221 34% 18%;
+    --muted-foreground:  217 26% 64%;
+    --accent:            262 72% 72%;
+    --accent-foreground: 222 60% 6%;
+    --destructive:       0 62% 45%;
+    --destructive-foreground: 213 40% 97%;
 
-    --border:  224 30% 14%;
-    --input:   224 30% 14%;
-    --ring:    230 65% 65%;
+    --border:  220 30% 22%;
+    --input:   220 30% 22%;
+    --ring:    230 72% 68%;
 
     /* Category accents — slightly brighter in dark */
     --cat-fund:  217 91% 65%;
