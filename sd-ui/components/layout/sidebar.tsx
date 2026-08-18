@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  Building2, LayoutDashboard, Code2, Database, GitBranch, Target, BookOpen,
+  Building2, LayoutDashboard, Code2, Database, Brain, GitBranch, Target, BookOpen,
   ChevronDown, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { id: "system-design"  as AppSection, label: "System Design",          icon: Building2 },
   { id: "ood"            as AppSection, label: "Object Oriented Design",  icon: Code2 },
   { id: "sql"            as AppSection, label: "SQL",                     icon: Database },
+  { id: "ml"             as AppSection, label: "Machine Learning",        icon: Brain },
   { id: "dsa"            as AppSection, label: "DS & Algorithms",         icon: GitBranch, soon: true },
 ];
 

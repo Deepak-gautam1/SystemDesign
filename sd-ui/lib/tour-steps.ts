@@ -19,7 +19,7 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
     target: "sidebar-nav",
     title: "Switch sections here",
-    body: "System Design, Object-Oriented Design, SQL, and more (some still coming soon) all live in this sidebar.",
+    body: "System Design, Object-Oriented Design, SQL, Machine Learning, and more (some still coming soon) all live in this sidebar.",
     placement: "right",
   },
   {
@@ -123,5 +123,15 @@ export const SQL_TOUR_STEPS: TourStep[] = [
     title: "How Problems mode works",
     body: "Open a problem, then switch between Learn (reference SQL solution) and Practice (write your own query against the same schema). Reveal Solution compares anytime. Once you've written something, hit Evaluate Query for a scored /10 AI review of your specific query.",
     placement: "bottom",
+  },
+];
+
+// ── ML section — first time you open Machine Learning ───────────────────────
+export const ML_TOUR_STEPS: TourStep[] = [
+  {
+    target: "ml-theory-grid",
+    title: "Browse ML theory by category",
+    body: "Click any topic to read it. Each one has Prev/Next at the top so you can work through an entire category — like Neural Network Fundamentals — start to finish. This section is theory only: concepts, tradeoffs, and reusable answer frameworks, no coding practice.",
+    placement: "top",
   },
 ];
