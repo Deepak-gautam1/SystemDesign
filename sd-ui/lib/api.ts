@@ -61,6 +61,31 @@ export async function* streamChat(
   yield* readSSE(res);
 }
 
+/**
+ * Socratic quiz chat scoped to a client-supplied topic blob (e.g. an ML
+ * TheoryTopic) — no ChromaDB retrieval, the topic content itself is the
+ * reference context. `topicTitle` empty + `topicContent` set to a syllabus
+ * digest is how a general (not-single-topic) interview is run.
+ */
+export async function* streamTopicChat(
+  query:   string,
+  mode:    string,
+  history: Pick<Message, "role" | "content">[],
+  topicTitle:   string,
+  topicContent: string
+): AsyncGenerator<ChatEvent> {
+  const res = await fetch(`${API_BASE}/api/topic-chat`, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({
+      query, mode, history,
+      topic_title:   topicTitle,
+      topic_content: topicContent,
+    }),
+  });
+  yield* readSSE(res);
+}
+
 /** Permanently delete every saved attempt for a topic+mode (signed-in only). */
 export async function deleteSavedHistory(topicId: string, mode: string): Promise<number> {
   const res = await fetch(

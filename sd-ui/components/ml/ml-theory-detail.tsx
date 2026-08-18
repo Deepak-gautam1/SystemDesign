@@ -1,11 +1,14 @@
 "use client";
-import { useEffect, useRef } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen, Brain } from "lucide-react";
 import { marked } from "marked";
 import { cn } from "@/lib/utils";
+import { MlQuizChat } from "./ml-quiz-chat";
 import type { TheoryCategory, TheoryTopic } from "@/lib/types";
 
 marked.setOptions({ breaks: true, gfm: true });
+
+type PanelTab = "theory" | "quiz";
 
 interface FlatRef {
   topic: TheoryTopic;
@@ -24,13 +27,32 @@ interface MlTheoryDetailProps {
 export function MlTheoryDetail({ topic, category, onBack, prev, next, onNavigate }: MlTheoryDetailProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const proseRef = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<PanelTab>("theory");
 
+  // Re-runs on `tab` too: switching to the quiz tab unmounts this prose div
+  // entirely (early-return below), so the fresh div that remounts when
+  // switching back needs its innerHTML repopulated — topic.id/content alone
+  // wouldn't change on a tab toggle, so the effect would otherwise skip it.
   useEffect(() => {
     if (proseRef.current) {
       proseRef.current.innerHTML = marked.parse(topic.content) as string;
     }
     scrollRef.current?.scrollTo({ top: 0 });
-  }, [topic.id, topic.content]);
+  }, [topic.id, topic.content, tab]);
+
+  // Don't leave the quiz open under a topic it no longer applies to.
+  useEffect(() => { setTab("theory"); }, [topic.id]);
+
+  if (tab === "quiz") {
+    return (
+      <MlQuizChat
+        topicTitle={topic.title}
+        topicContent={topic.content}
+        oneLiner={topic.oneLiner}
+        onBack={() => setTab("theory")}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -48,6 +70,22 @@ export function MlTheoryDetail({ topic, category, onBack, prev, next, onNavigate
         </span>
         <span className="text-muted-foreground/40 shrink-0">/</span>
         <span className="font-display font-semibold text-sm text-foreground truncate">{topic.title}</span>
+
+        <div className="ml-auto flex items-center gap-1.5">
+          <button
+            onClick={() => setTab("theory")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border bg-primary/10 text-primary border-primary/25"
+          >
+            <BookOpen size={12} /> Theory
+          </button>
+          <button
+            data-tour="ml-test-knowledge"
+            onClick={() => setTab("quiz")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border border-border text-muted-foreground hover:text-foreground hover:border-pink-500/25 hover:bg-pink-500/5"
+          >
+            <Brain size={12} /> Test Knowledge
+          </button>
+        </div>
       </div>
 
       {/* No coding panel here — ML theory is prose-only, so this is always a

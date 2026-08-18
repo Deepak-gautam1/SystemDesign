@@ -104,6 +104,37 @@ APPROACH:
 5. Tie back to the book when relevant.
 6. Close with 2–3 follow-up questions for the student.
 """,
+
+"ml_quiz": """\
+You are a rigorous machine learning interviewer. The student is preparing
+for ML interviews using topic notes covering evaluation metrics, bias-variance,
+feature engineering, ensembles, dimensionality reduction, neural networks,
+and other core ML concepts.
+
+RULES:
+1. Ask exactly ONE question per turn, then STOP and wait for the student's
+   answer. Your entire reply is ONE short reaction plus ONE question —
+   never a numbered list, never multiple "Follow-up N" blocks, never more
+   than one question mark in the whole reply. Root the first question in the
+   reference context below, in plain language, not just textbook jargon.
+2. Never give the answer directly. Read the student's actual answer and react
+   to it specifically before asking the next single question:
+   • If they nailed it: "Good — what happens to that if the dataset is imbalanced?"
+   • If they were vague or wrong: point out exactly what's missing or off,
+     then re-ask or narrow the question — don't just move on.
+3. Favor concrete, worked examples over bare definitions.
+4. Count the student's answers so far in the conversation history. Only once
+   they've answered at least 3 separate questions may you stop asking and
+   write the structured debrief below INSTEAD of a question — never combine
+   a debrief with a new question, and never debrief after just 1–2 answers:
+
+--- INTERVIEW DEBRIEF ---
+Score: X / 5
+Nailed: [what they got right]
+Gaps: [specific weak areas]
+Concept ref: [the specific topic/subsection to review again]
+-------------------------
+""",
 }
 
 
@@ -318,6 +349,12 @@ class RAGEngine:
           2. Gemini — tries _gemini_gen in order, falls through on 429
         """
         context  = self._format_context(chunks)
+        # ml_quiz's "ask exactly one question, then stop" rule needs much
+        # tighter instruction-following than free-form tutoring gets away
+        # with — at 0.7 the model reliably front-loads a whole multi-question
+        # script on the very first turn. Scoped to this mode only so the
+        # existing system-design "quiz" mode's tone is untouched.
+        temperature = 0.3 if mode == "ml_quiz" else 0.7
 
         # ── 1. Groq (proper chat messages format) ─────────────────────────────
         if self._groq:
@@ -331,7 +368,7 @@ class RAGEngine:
                         messages=messages,
                         stream=True,
                         max_tokens=2048,
-                        temperature=0.7,
+                        temperature=temperature,
                     )
                     for chunk in stream:
                         content = chunk.choices[0].delta.content
@@ -412,12 +449,12 @@ class RAGEngine:
     ) -> list[dict]:
         """Build OpenAI-compatible messages list for Groq."""
         system = _PROMPTS.get(mode, _PROMPTS["study"])
-        anchor = f"CURRENT TOPIC: {topic}\nStay focused on this topic for every question, follow-up, and debrief — do not drift to a different system design topic even if the retrieved book context mentions one.\n\n" if topic else ""
+        anchor = f"CURRENT TOPIC: {topic}\nStay focused on this topic for every question, follow-up, and debrief — do not drift to a different topic even if the reference context below mentions one.\n\n" if topic else ""
 
         messages = [
             {
                 "role":    "system",
-                "content": f"{system}\n\n{anchor}BOOK CONTEXT (top relevant sections):\n{context}",
+                "content": f"{system}\n\n{anchor}REFERENCE CONTEXT (top relevant sections):\n{context}",
             }
         ]
 
@@ -440,7 +477,7 @@ class RAGEngine:
     ) -> str:
         """Build single-string prompt for Gemini (non-chat API)."""
         system = _PROMPTS.get(mode, _PROMPTS["study"])
-        anchor = f"CURRENT TOPIC: {topic}\nStay focused on this topic for every question, follow-up, and debrief — do not drift to a different system design topic even if the retrieved book context mentions one.\n\n" if topic else ""
+        anchor = f"CURRENT TOPIC: {topic}\nStay focused on this topic for every question, follow-up, and debrief — do not drift to a different topic even if the reference context below mentions one.\n\n" if topic else ""
         hist   = ""
         if history:
             hist = "\n\nCONVERSATION HISTORY:\n"
@@ -451,7 +488,7 @@ class RAGEngine:
         return (
             f"{system}\n\n"
             f"{anchor}"
-            f"BOOK CONTEXT:\n{context}"
+            f"REFERENCE CONTEXT:\n{context}"
             f"{hist}\n\n"
             f"Student: {query}\nTutor:"
         )

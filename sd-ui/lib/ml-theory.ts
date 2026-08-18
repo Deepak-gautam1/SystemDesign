@@ -124,3 +124,11 @@ export const FLAT_ML_THEORY_TOPICS: FlatMlTheoryTopic[] = ML_THEORY_CATEGORIES.f
 export function getMlTheoryTopicIndex(topicId: string): number {
   return FLAT_ML_THEORY_TOPICS.findIndex(t => t.topic.id === topicId);
 }
+
+// Compact syllabus digest (category → topic titles) handed to the general,
+// not-scoped-to-one-topic "Test Your Knowledge" interview so the model knows
+// the full surface area it can draw questions from without embedding all
+// 33 topics' full prose as context.
+export const ML_SYLLABUS = ML_THEORY_CATEGORIES
+  .map(c => `${c.label}: ${c.topics.map(t => t.title).join(", ")}`)
+  .join("\n");

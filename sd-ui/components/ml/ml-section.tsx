@@ -1,12 +1,24 @@
 "use client";
 import { useState } from "react";
-import { Brain } from "lucide-react";
+import { Brain, MessagesSquare } from "lucide-react";
 import { MlTheorySection } from "./ml-theory-section";
 import { MlTheoryDetail } from "./ml-theory-detail";
-import { FLAT_ML_THEORY_TOPICS, TOTAL_ML_THEORY_TOPICS, getMlTheoryTopicIndex } from "@/lib/ml-theory";
+import { MlQuizChat } from "./ml-quiz-chat";
+import { FLAT_ML_THEORY_TOPICS, TOTAL_ML_THEORY_TOPICS, getMlTheoryTopicIndex, ML_SYLLABUS } from "@/lib/ml-theory";
 
 export function MLSection() {
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+  const [generalQuiz, setGeneralQuiz] = useState(false);
+
+  if (generalQuiz) {
+    return (
+      <MlQuizChat
+        topicTitle=""
+        topicContent={ML_SYLLABUS}
+        onBack={() => setGeneralQuiz(false)}
+      />
+    );
+  }
 
   if (selectedTopicId) {
     const idx = getMlTheoryTopicIndex(selectedTopicId);
@@ -34,7 +46,7 @@ export function MLSection() {
         <div className="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/25 flex items-center justify-center text-pink-500 shrink-0">
           <Brain size={20} />
         </div>
-        <div>
+        <div className="min-w-0">
           <h1 className="font-display font-bold text-lg tracking-tight text-foreground">
             Machine Learning Interview Prep
           </h1>
@@ -42,6 +54,13 @@ export function MLSection() {
             {TOTAL_ML_THEORY_TOPICS} theory topics · concepts, tradeoffs & reusable answer frameworks · no coding
           </p>
         </div>
+        <button
+          data-tour="ml-test-knowledge-general"
+          onClick={() => setGeneralQuiz(true)}
+          className="ml-auto shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium border border-pink-500/25 bg-pink-500/10 text-pink-600 dark:text-pink-400 hover:bg-pink-500/20 transition-all"
+        >
+          <MessagesSquare size={13} /> Test Your Knowledge
+        </button>
       </div>
 
       <MlTheorySection onSelectTopic={setSelectedTopicId} />

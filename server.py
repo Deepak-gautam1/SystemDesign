@@ -5,6 +5,8 @@ API endpoints:
   GET  /api/status       → health + chunk count
   POST /api/chat         → SSE: RAG-grounded system design chat
   POST /api/evaluate     → SSE: Groq/Gemini code quality review for OOD practice
+  POST /api/topic-chat   → SSE: Socratic quiz chat scoped to a client-supplied topic
+                            (e.g. an ML theory topic) — no ChromaDB retrieval
 """
 
 import json
@@ -112,6 +114,14 @@ class ChatRequest(BaseModel):
     topic:   str        = ""
 
 
+class TopicChatRequest(BaseModel):
+    query:         str
+    mode:          str        = "ml_quiz"
+    history:       list[dict] = []
+    topic_title:   str        = ""
+    topic_content: str        = ""
+
+
 class EvaluateRequest(BaseModel):
     student_code:        str
     problem_title:       str
@@ -147,6 +157,52 @@ async def chat(req: ChatRequest):
             chunks = _rag.retrieve(retrieval_query)
             yield f"data: {json.dumps({'type': 'sources', 'data': chunks})}\n\n"
             for token in _rag.stream_answer(req.query, req.mode, req.history, chunks, req.topic):
+                yield f"data: {json.dumps({'type': 'token', 'text': token})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        except Exception as exc:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
+
+    return StreamingResponse(stream(), media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"})
+
+
+# ─── /api/topic-chat ──────────────────────────────────────────────────────────
+# Same SSE shape as /api/chat, but the "reference material" is a short markdown
+# topic blob the client already has (e.g. an ML TheoryTopic.content) rather than
+# a large corpus that needs semantic search — so this skips ChromaDB retrieval
+# entirely and hands that content straight to stream_answer() as a single chunk.
+
+@app.post("/api/topic-chat")
+async def topic_chat(req: TopicChatRequest):
+    if not _rag:
+        raise HTTPException(503, "RAG engine not ready — run python ingest.py first")
+    if not req.query.strip():
+        raise HTTPException(400, "query cannot be empty")
+
+    def stream():
+        try:
+            chunks = (
+                [{"text": req.topic_content, "source": req.topic_title or "Reference", "page": 0}]
+                if req.topic_content else []
+            )
+            # ml_quiz's "ask exactly one question, then stop" rule is only
+            # loosely followed by the model even with a strict system prompt —
+            # empirically it still front-loads several questions (or an early
+            # debrief) on a meaningful fraction of turns. Enforce it in code
+            # instead of hoping the prompt holds: once the emitted text hits
+            # its first "?", drop everything the model generates after it.
+            # A debrief turn has no "?" at all, so it streams through whole.
+            enforce_one_question = req.mode == "ml_quiz"
+            emitted = ""
+            for token in _rag.stream_answer(req.query, req.mode, req.history, chunks, req.topic_title):
+                if enforce_one_question:
+                    if "?" in emitted:
+                        break
+                    combined = emitted + token
+                    q_idx = combined.find("?")
+                    if q_idx != -1:
+                        token = combined[len(emitted):q_idx + 1]
+                    emitted = combined[:q_idx + 1] if q_idx != -1 else combined
                 yield f"data: {json.dumps({'type': 'token', 'text': token})}\n\n"
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
         except Exception as exc:

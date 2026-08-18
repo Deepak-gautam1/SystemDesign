@@ -134,4 +134,10 @@ export const ML_TOUR_STEPS: TourStep[] = [
     body: "Click any topic to read it. Each one has Prev/Next at the top so you can work through an entire category — like Neural Network Fundamentals — start to finish. This section is theory only: concepts, tradeoffs, and reusable answer frameworks, no coding practice.",
     placement: "top",
   },
+  {
+    target: "ml-test-knowledge-general",
+    title: "Test your knowledge",
+    body: "Get quizzed like a real ML interviewer across the whole syllabus — it asks a question, pushes back with Socratic follow-ups instead of handing you the answer, and debriefs with a score after a few exchanges. Open any topic and hit “Test Knowledge” there instead to drill just that one concept.",
+    placement: "bottom",
+  },
 ];
