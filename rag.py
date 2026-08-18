@@ -28,14 +28,14 @@ _LOCAL_QUERY_PREFIX = "Represent this sentence for searching relevant passages: 
 load_dotenv()
 
 # ── Groq models ───────────────────────────────────────────────────────────────
-# Tried in order; first that responds without 429 wins.
+# Tried in order; first that responds without 429/deprecation wins. Groq
+# periodically retires whole model families — the entire llama-3.x chat
+# lineup (and mixtral, gemma2) was deprecated in 2026 in favor of these
+# openai/gpt-oss-* production-tier models. Check console.groq.com/docs/models
+# before assuming a "Groq unavailable" error means the API key is bad.
 GROQ_MODELS = [
-    "llama-3.3-70b-versatile",   # best quality, ~1k RPD free
-    "llama-3.1-70b-versatile",   # solid fallback
-    "llama-3.1-8b-instant",      # fastest, 14.4k RPD free — great for quizzes
-    "llama3-70b-8192",           # older 70B, often has separate quota
-    "mixtral-8x7b-32768",        # long context, good for deep dives
-    "gemma2-9b-it",              # last resort Groq model
+    "openai/gpt-oss-20b",     # production tier, ~1000 tok/s, 131k context — fastest
+    "openai/gpt-oss-120b",    # production tier, ~500 tok/s, 131k context — higher quality
 ]
 
 # ── Gemini embedding candidates ───────────────────────────────────────────────
@@ -223,12 +223,22 @@ class RAGEngine:
             try:
                 from groq import Groq as GroqClient
                 self._groq = GroqClient(api_key=groq_key)
-                # Quick smoke-test (tiny request)
-                self._groq.chat.completions.create(
-                    model="llama-3.1-8b-instant",
-                    messages=[{"role": "user", "content": "hi"}],
-                    max_tokens=3,
-                )
+                # Smoke-test against the fallback list itself, not one
+                # hardcoded model — a single retired/renamed model must not
+                # disable Groq entirely if another model in GROQ_MODELS works.
+                smoke_errors = []
+                for model in GROQ_MODELS:
+                    try:
+                        self._groq.chat.completions.create(
+                            model=model,
+                            messages=[{"role": "user", "content": "hi"}],
+                            max_tokens=3,
+                        )
+                        break
+                    except Exception as model_exc:
+                        smoke_errors.append(f"{model}: {model_exc}")
+                else:
+                    raise RuntimeError("; ".join(smoke_errors))
                 print("  ✅ Groq connected (primary generation)")
             except ImportError:
                 print("  ⚠️  groq package not installed — run: pip install groq")
@@ -337,7 +347,7 @@ class RAGEngine:
                     _rate_keywords = [
                         "429", "rate_limit", "rate limit",
                         "model_not_active", "model_decommissioned",
-                        "model not found",
+                        "model_not_found", "model not found", "does not exist",
                     ]
                     if any(kw in err.lower() for kw in _rate_keywords):
                         continue                  # try next Groq model

@@ -1,6 +1,6 @@
 "use client";
 import * as Icons from "lucide-react";
-import { Building2, Code2, GitBranch, Target, ArrowRight, Clock } from "lucide-react";
+import { Building2, Code2, Database, GitBranch, Target, ArrowRight, Clock } from "lucide-react";
 import type { LucideIcon as LucideIconType } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProgressRing } from "@/components/ui/progress-ring";
@@ -29,6 +29,7 @@ const EXPLORE_CARDS: {
 }[] = [
   { id: "system-design", label: "System Design",          sub: "22 topics · interview prep",  Icon: Building2, color: "text-primary",          bg: "bg-primary/10",       border: "border-primary/25" },
   { id: "ood",           label: "Object Oriented Design",  sub: "Patterns & design problems",  Icon: Code2,     color: "text-violet-500 dark:text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/25" },
+  { id: "sql",           label: "SQL",                     sub: "Theory + top interview queries", Icon: Database, color: "text-sky-500 dark:text-sky-400", bg: "bg-sky-500/10", border: "border-sky-500/25" },
   { id: "dsa",           label: "DS & Algorithms",         sub: "Coming soon",                 Icon: GitBranch, color: "text-amber-500 dark:text-amber-400",   bg: "bg-amber-500/10",  border: "border-amber-500/25", soon: true },
   { id: "practice",      label: "Practice",                sub: "Mock interviews — soon",       Icon: Target,    color: "text-muted-foreground", bg: "bg-muted",            border: "border-border", soon: true },
 ];

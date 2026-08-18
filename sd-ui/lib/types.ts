@@ -1,7 +1,7 @@
 export type Difficulty = "easy" | "medium" | "hard";
 export type Mode = "study" | "quiz" | "deep_dive";
 export type CategoryId = "fund" | "stor" | "core" | "infra" | "adv";
-export type AppSection = "dashboard" | "system-design" | "ood" | "dsa" | "practice" | "guides";
+export type AppSection = "dashboard" | "system-design" | "ood" | "sql" | "dsa" | "practice" | "guides";
 
 export interface Topic {
   id: string;
@@ -59,7 +59,9 @@ export interface ApiStatus {
   message?: string;
 }
 
-// ── LLD / OOP theory reference (Theory tab inside Object Oriented Design) ───
+// ── LLD / OOP theory reference (Theory tab inside Object Oriented Design) ──
+// Reused as-is for the SQL Theory tab — the shape (title/oneLiner/prose
+// content + an optional code panel) is language-agnostic.
 
 export interface TheoryTopic {
   id: string;

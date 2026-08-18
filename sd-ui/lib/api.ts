@@ -79,6 +79,7 @@ export async function* evaluateCode(params: {
   problemTitle:       string;
   referenceCode:      string;
   problemDescription?: string;
+  language?:          "cpp" | "sql";
 }): AsyncGenerator<ChatEvent> {
   const res = await fetch(`${API_BASE}/api/evaluate`, {
     method:  "POST",
@@ -88,6 +89,7 @@ export async function* evaluateCode(params: {
       problem_title:       params.problemTitle,
       reference_code:      params.referenceCode,
       problem_description: params.problemDescription ?? "",
+      language:            params.language ?? "cpp",
     }),
   });
   yield* readSSE(res);

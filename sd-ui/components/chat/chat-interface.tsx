@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import * as Icons from "lucide-react";
-import { ArrowLeft, CheckCircle2, Send, Eraser, Trash2, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Send, Eraser, Trash2, X, Mic, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./message-bubble";
 import { StudyPath } from "./study-path";
 import { useChat } from "@/hooks/use-chat";
+import { useSpeechToText } from "@/hooks/use-speech-to-text";
 import type { Topic, Category, Mode } from "@/lib/types";
 
 function LucideIcon({ name, size = 15, className }: { name: string; size?: number; className?: string }) {
@@ -50,6 +51,18 @@ export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDon
 
   // Never leave a confirmation prompt hanging when the context changes under it.
   useEffect(() => { setConfirmDelete(false); }, [topic.id, mode]);
+
+  // Shared by typing and dictation so both keep the textarea auto-sized.
+  const applyInputText = (text: string) => {
+    setInput(text);
+    if (taRef.current) {
+      taRef.current.style.height = "auto";
+      taRef.current.style.height = Math.min(taRef.current.scrollHeight, 120) + "px";
+    }
+  };
+
+  const { supported: micSupported, listening: micOn, error: micError, toggle: toggleMic } =
+    useSpeechToText({ onTranscript: applyInputText });
 
   const handleSend = () => {
     const text = input.trim();
@@ -223,15 +236,30 @@ export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDon
             ref={taRef}
             rows={1}
             value={input}
-            onChange={e => {
-              setInput(e.target.value);
-              e.target.style.height = "auto";
-              e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
-            }}
+            onChange={e => applyInputText(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder={`Ask about ${topic.label}…`}
+            placeholder={micOn ? "Listening…" : `Ask about ${topic.label}…`}
             className="flex-1 bg-transparent border-none outline-none resize-none text-sm text-foreground placeholder:text-muted-foreground min-h-[22px] max-h-[120px] overflow-y-auto leading-relaxed"
           />
+
+          {/* Dictate — browser speech recognition, hidden where unsupported
+              (desktop Firefox/Safari) rather than shown as a dead button. */}
+          {micSupported && (
+            <button
+              onClick={() => toggleMic(input)}
+              title={micOn ? "Stop dictating" : "Dictate your question"}
+              aria-pressed={micOn}
+              className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all",
+                micOn
+                  ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 animate-pulse"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+            >
+              {micOn ? <Square size={12} fill="currentColor" /> : <Mic size={15} />}
+            </button>
+          )}
+
           <button
             onClick={handleSend}
             disabled={streaming || !input.trim()}
@@ -240,8 +268,11 @@ export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDon
             <Send size={14} />
           </button>
         </div>
-        <p className="text-center text-[10px] font-mono text-muted-foreground mt-1.5">
-          Enter to send · Shift+Enter for new line
+        <p className={cn(
+          "text-center text-[10px] font-mono mt-1.5",
+          micError ? "text-rose-600 dark:text-rose-400" : "text-muted-foreground"
+        )}>
+          {micError ?? (micOn ? "Listening — tap the mic to stop" : "Enter to send · Shift+Enter for new line")}
         </p>
       </div>
     </div>

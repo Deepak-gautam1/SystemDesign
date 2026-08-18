@@ -27,10 +27,19 @@ _rag        = None
 _groq_client= None   # kept separate so /api/evaluate works even if RAG DB missing
 
 GROQ_MODELS = [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-70b-versatile",
-    "llama-3.1-8b-instant",
-    "mixtral-8x7b-32768",
+    "openai/gpt-oss-20b",     # production tier, ~1000 tok/s, 131k context — fastest
+    "openai/gpt-oss-120b",    # production tier, ~500 tok/s, 131k context — higher quality
+]
+
+# Substrings that mean "this specific model is unusable, try the next one" —
+# as opposed to a real failure (bad key, network error) that should surface.
+# Groq periodically retires/renames models (e.g. the entire llama-3.x chat
+# lineup was deprecated in 2026 in favor of openai/gpt-oss-*), so this list
+# has to catch a live "model no longer exists" response, not just rate limits.
+_GROQ_SKIP_MODEL_KEYWORDS = [
+    "429", "rate_limit", "rate limit",
+    "model_not_active", "model_decommissioned",
+    "model_not_found", "model not found", "does not exist",
 ]
 
 
@@ -46,11 +55,23 @@ async def lifespan(app: FastAPI):
         try:
             from groq import Groq
             _groq_client = Groq(api_key=groq_key)
-            _groq_client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[{"role": "user", "content": "hi"}],
-                max_tokens=3,
-            )
+            # Smoke-test against the fallback list itself, not one hardcoded
+            # model — a single retired/renamed model (which Groq does from
+            # time to time) must not disable Groq entirely if another model
+            # in GROQ_MODELS still works.
+            smoke_errors = []
+            for model in GROQ_MODELS:
+                try:
+                    _groq_client.chat.completions.create(
+                        model=model,
+                        messages=[{"role": "user", "content": "hi"}],
+                        max_tokens=3,
+                    )
+                    break
+                except Exception as model_exc:
+                    smoke_errors.append(f"{model}: {model_exc}")
+            else:
+                raise RuntimeError("; ".join(smoke_errors))
             print("✅  Groq client ready")
         except Exception as e:
             print(f"⚠️  Groq unavailable: {e}")
@@ -96,6 +117,7 @@ class EvaluateRequest(BaseModel):
     problem_title:       str
     reference_code:      str
     problem_description: str = ""
+    language:            str = "cpp"   # "cpp" | "sql" — picks the review persona/criteria below
 
 
 # ─── /api/status ──────────────────────────────────────────────────────────────
@@ -136,21 +158,40 @@ async def chat(req: ChatRequest):
 
 # ─── /api/evaluate ────────────────────────────────────────────────────────────
 
-EVAL_SYSTEM = """You are a senior C++ software engineer and OOP mentor.
+EVAL_SYSTEM_CPP = """You are a senior C++ software engineer and OOP mentor.
 Review the student's C++ practice code clearly and constructively.
 Be specific — reference exact class/method names from their code.
 Focus on: correctness, OOP principles (encapsulation, abstraction, polymorphism, SOLID), code quality."""
 
+EVAL_SYSTEM_SQL = """You are a senior data engineer and SQL interview coach.
+Review the student's SQL practice query clearly and constructively.
+Be specific — reference exact table/column/clause names from their query.
+Focus on: correctness against the stated requirement, proper use of joins/window functions/aggregation,
+NULL-handling edge cases, and query readability."""
+
+def _eval_system(language: str) -> str:
+    return EVAL_SYSTEM_SQL if language == "sql" else EVAL_SYSTEM_CPP
+
+
 def _build_eval_prompt(req: EvaluateRequest) -> str:
+    lang = "sql" if req.language == "sql" else "cpp"
+    technique_section = (
+        "## 🎯 SQL Technique\n"
+        "[Which SQL concepts were applied correctly vs missed — joins, window functions, "
+        "GROUP BY/HAVING, NULL-handling, subqueries etc.]"
+        if lang == "sql" else
+        "## 🎯 OOP Principles\n"
+        "[Which OOP concepts were applied correctly vs missed — encapsulation, abstraction, SOLID etc.]"
+    )
     return f"""Problem: **{req.problem_title}**
 
 Reference Solution:
-```cpp
+```{lang}
 {req.reference_code[:3500]}
 ```
 
 Student's Code:
-```cpp
+```{lang}
 {req.student_code[:3500]}
 ```
 
@@ -164,8 +205,7 @@ Review the student's code using EXACTLY this structure:
 ## ⚠️ Issues Found
 [Bugs or logic errors with exact location in their code]
 
-## 🎯 OOP Principles
-[Which OOP concepts were applied correctly vs missed — encapsulation, abstraction, SOLID etc.]
+{technique_section}
 
 ## 📝 Code to Fix
 [Show 1–2 concrete before/after examples of specific improvements]
@@ -193,7 +233,7 @@ async def evaluate(req: EvaluateRequest):
                     response = _groq_client.chat.completions.create(
                         model=model,
                         messages=[
-                            {"role": "system", "content": EVAL_SYSTEM},
+                            {"role": "system", "content": _eval_system(req.language)},
                             {"role": "user",   "content": prompt},
                         ],
                         stream=True,
@@ -208,14 +248,14 @@ async def evaluate(req: EvaluateRequest):
                     return
                 except Exception as exc:
                     err = str(exc)
-                    if any(x in err.lower() for x in ["429", "rate_limit", "model_not_active", "model_decommissioned"]):
+                    if any(kw in err.lower() for kw in _GROQ_SKIP_MODEL_KEYWORDS):
                         continue
                     yield f"data: {json.dumps({'type': 'error', 'message': err})}\n\n"
                     return
 
         # ── 2. Gemini fallback (via RAG engine's client) ───────────────────
         if _rag and _rag._gemini:
-            full_prompt = f"{EVAL_SYSTEM}\n\n{prompt}"
+            full_prompt = f"{_eval_system(req.language)}\n\n{prompt}"
             for model in _rag._gemini_gen:
                 try:
                     for piece in _rag._gemini.models.generate_content_stream(

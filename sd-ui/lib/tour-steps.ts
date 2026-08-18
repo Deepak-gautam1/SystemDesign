@@ -19,7 +19,7 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
     target: "sidebar-nav",
     title: "Switch sections here",
-    body: "System Design, Object-Oriented Design, and more (some still coming soon) all live in this sidebar.",
+    body: "System Design, Object-Oriented Design, SQL, and more (some still coming soon) all live in this sidebar.",
     placement: "right",
   },
   {
@@ -100,6 +100,28 @@ export const OOD_TOUR_STEPS: TourStep[] = [
     target: "ood-problems-workflow",
     title: "How Problems mode works",
     body: "Open a problem, then switch between Learn (reference C++ solution) and Practice (an editable starter — write your own). Reveal Solution compares anytime. Once you've written something, hit Evaluate Code for a scored /10 AI review of your specific implementation.",
+    placement: "bottom",
+  },
+];
+
+// ── SQL section — first time you open SQL Interview Prep ───────────────────
+export const SQL_TOUR_STEPS: TourStep[] = [
+  {
+    target: "sql-tabs",
+    title: "Two ways to learn SQL",
+    body: "Theory is for reading — execution order, joins, window functions, subqueries, transactions, indexing, and database design. Problems is hands-on — real interview questions with schemas, reference solutions, and an editable practice pane.",
+    placement: "bottom",
+  },
+  {
+    target: "sql-theory-grid",
+    title: "Browse theory by category",
+    body: "Click any topic to read it. Each one has Prev/Next at the top so you can work straight through an entire category — like Window Functions, start to finish — without coming back to this grid.",
+    placement: "top",
+  },
+  {
+    target: "sql-problems-workflow",
+    title: "How Problems mode works",
+    body: "Open a problem, then switch between Learn (reference SQL solution) and Practice (write your own query against the same schema). Reveal Solution compares anytime. Once you've written something, hit Evaluate Query for a scored /10 AI review of your specific query.",
     placement: "bottom",
   },
 ];

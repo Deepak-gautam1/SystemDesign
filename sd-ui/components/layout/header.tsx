@@ -1,7 +1,7 @@
 "use client";
 import {
   Search, BookOpen, Target, Microscope, ChevronRight, HelpCircle,
-  LayoutDashboard, Building2, Code2, GitBranch, LogIn, LogOut,
+  LayoutDashboard, Building2, Code2, Database, GitBranch, LogIn, LogOut,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -27,6 +27,7 @@ const SECTION_META: Record<AppSection, { label: string; Icon: LucideIcon; color:
   "dashboard":     { label: "Dashboard",              Icon: LayoutDashboard, color: "text-foreground" },
   "system-design": { label: "System Design",          Icon: Building2,       color: "text-primary" },
   "ood":           { label: "Object Oriented Design", Icon: Code2,           color: "text-violet-500 dark:text-violet-400" },
+  "sql":           { label: "SQL",                    Icon: Database,        color: "text-sky-500 dark:text-sky-400" },
   "dsa":           { label: "DS & Algorithms",        Icon: GitBranch,       color: "text-amber-500 dark:text-amber-400" },
   "practice":      { label: "Practice",               Icon: Target,          color: "text-muted-foreground" },
   "guides":        { label: "Study Guides",           Icon: BookOpen,        color: "text-muted-foreground" },
