@@ -5,14 +5,22 @@ API endpoints:
   GET  /api/status       → health + chunk count
   POST /api/chat         → SSE: RAG-grounded system design chat
   POST /api/evaluate     → SSE: Groq/Gemini code quality review for OOD practice
-  POST /api/topic-chat   → SSE: Socratic quiz chat scoped to a client-supplied topic
-                            (e.g. an ML theory topic) — no ChromaDB retrieval
+  POST /api/topic-chat   → SSE: tutor chat scoped to a client-supplied topic —
+                            no ChromaDB retrieval. Backs the per-topic tutor in
+                            the ML, SQL and OOD theory sections, in two modes:
+                            "topic_quiz" (Socratic interviewer) and "topic_ask"
+                            (free-form Q&A).
 """
 
 import json
 import os
 from pathlib import Path
 from contextlib import asynccontextmanager
+
+# Imported for its side effect: config re-wraps stdout/stderr as UTF-8 so the
+# emoji in the startup logs below don't raise UnicodeEncodeError on a default
+# cp1252 Windows console. Must come before the first print() in this module.
+import config  # noqa: F401
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -116,7 +124,10 @@ class ChatRequest(BaseModel):
 
 class TopicChatRequest(BaseModel):
     query:         str
-    mode:          str        = "ml_quiz"
+    # "topic_quiz" (Socratic interviewer, one question per turn) or
+    # "topic_ask" (free-form tutor that does answer). Anything unrecognised
+    # falls back to the plain "study" prompt in rag.py rather than erroring.
+    mode:          str        = "topic_quiz"
     history:       list[dict] = []
     topic_title:   str        = ""
     topic_content: str        = ""
@@ -185,14 +196,19 @@ async def topic_chat(req: TopicChatRequest):
                 [{"text": req.topic_content, "source": req.topic_title or "Reference", "page": 0}]
                 if req.topic_content else []
             )
-            # ml_quiz's "ask exactly one question, then stop" rule is only
+            # topic_quiz's "ask exactly one question, then stop" rule is only
             # loosely followed by the model even with a strict system prompt —
             # empirically it still front-loads several questions (or an early
             # debrief) on a meaningful fraction of turns. Enforce it in code
             # instead of hoping the prompt holds: once the emitted text hits
             # its first "?", drop everything the model generates after it.
             # A debrief turn has no "?" at all, so it streams through whole.
-            enforce_one_question = req.mode == "ml_quiz"
+            #
+            # Deliberately NOT applied to topic_ask, which is the free-form
+            # tutor mode — there a mid-answer question mark is normal prose
+            # ("what happens if the column is nullable? nothing, because…")
+            # and truncating at it would cut the answer off mid-thought.
+            enforce_one_question = req.mode == "topic_quiz"
             emitted = ""
             for token in _rag.stream_answer(req.query, req.mode, req.history, chunks, req.topic_title):
                 if enforce_one_question:

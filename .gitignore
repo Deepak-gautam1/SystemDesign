@@ -19,6 +19,11 @@ htmlcov/
 # Generated application data
 # db/ is intentionally committed — the deployed backend needs the built
 # vector DB and there's no persistent volume set up for it.
+#
+# Chroma rewrites db/chroma.sqlite3 on every run, so it shows up as modified
+# after merely starting the server. It can't be ignored here (it's tracked, and
+# untracking it breaks deploys) — run `sh scripts/quiet-db-churn.sh` once per
+# clone to silence that churn via --skip-worktree.
 embedding_cache.json
 embedding_cache.backup_corrupted.json
 github_repos/

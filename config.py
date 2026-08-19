@@ -1,9 +1,46 @@
 """
 config.py — Central configuration (updated with confirmed working models).
+
+Also installs a UTF-8 console shim on import (see below). Every entrypoint
+(server.py, rag.py, ingest*.py, diagnose.py) imports this module, so importing
+it is enough to make their emoji log lines safe on a default Windows console.
 """
 import os
+import sys
+
+# ── UTF-8 console shim ────────────────────────────────────────────────────────
+# A default Windows console hands Python a cp1252 stdout, which cannot encode
+# the emoji in our startup logs (✅ ⚠️ 🔢) — every such print() raises
+# UnicodeEncodeError and takes the process down. That bit hardest under
+# `uvicorn --reload`, where each reload spawns a fresh worker that dies on its
+# first log line. Re-wrapping the streams in UTF-8 with errors="replace" fixes
+# it without needing PYTHONUTF8=1 in the environment, and the replace policy
+# means an exotic character in an exception message can never crash a log call.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+    except (AttributeError, OSError):
+        # Not a real TextIOWrapper (pytest capture, some WSGI hosts) — those
+        # are already UTF-8 or discard output, so there's nothing to fix.
+        pass
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# ── .env, loaded here rather than by each caller ──────────────────────────────
+# Every setting below is read from the environment at import time, so .env has
+# to be loaded before this module's body runs. Leaving that to the importer is
+# an ordering trap: a caller whose `import config` happens to sit above its
+# load_dotenv() silently gets the defaults instead (which is exactly how an
+# EMBED_BACKEND=local install ends up querying the Gemini collection and
+# reporting "collection does not exist"). Loading it here makes the module
+# correct regardless of import order.
+#
+# Anchored to BASE_DIR, not the cwd, so launching from another directory still
+# finds it. override=False keeps a real environment variable — how Railway and
+# Render inject config — winning over the checked-in file.
+from dotenv import load_dotenv  # noqa: E402 — must follow BASE_DIR
+
+load_dotenv(os.path.join(BASE_DIR, ".env"), override=False)
 
 PDF_SOURCES = {
     "Part 1 – Alex Xu": os.path.join(BASE_DIR, "System Design Interview by Alex Xu -PART1.pdf"),

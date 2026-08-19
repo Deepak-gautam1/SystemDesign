@@ -210,9 +210,9 @@ export function getMlTheoryTopicIndex(topicId: string): number {
 }
 
 // Compact syllabus digest (category → topic titles) handed to the general,
-// not-scoped-to-one-topic "Test Your Knowledge" interview so the model knows
-// the full surface area it can draw questions from without embedding all
-// 33 topics' full prose as context.
+// not-scoped-to-one-topic tutor so the model knows the full surface area it can
+// draw questions from — without embedding every topic's full prose as context,
+// which at this curriculum's size would blow past the context window.
 export const ML_SYLLABUS = ML_THEORY_CATEGORIES
   .map(c => `${c.label}: ${c.topics.map(t => t.title).join(", ")}`)
   .join("\n");

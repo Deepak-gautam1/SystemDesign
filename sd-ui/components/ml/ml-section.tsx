@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Brain, MessagesSquare } from "lucide-react";
 import { MlTheorySection } from "./ml-theory-section";
 import { MlTheoryDetail } from "./ml-theory-detail";
-import { MlQuizChat } from "./ml-quiz-chat";
+import { TopicTutorChat } from "@/components/theory/topic-tutor-chat";
 import { FLAT_ML_THEORY_TOPICS, TOTAL_ML_THEORY_TOPICS, getMlTheoryTopicIndex, ML_SYLLABUS } from "@/lib/ml-theory";
 
 export function MLSection() {
@@ -12,9 +12,11 @@ export function MLSection() {
 
   if (generalQuiz) {
     return (
-      <MlQuizChat
+      <TopicTutorChat
+        subject="ml"
         topicTitle=""
         topicContent={ML_SYLLABUS}
+        backLabel="Machine Learning"
         onBack={() => setGeneralQuiz(false)}
       />
     );

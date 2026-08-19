@@ -1,13 +1,14 @@
 "use client";
 import { useState } from "react";
-import { Database, BookOpen, Pencil, Library } from "lucide-react";
+import { Database, BookOpen, Pencil, Library, MessagesSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DifficultyBadge, TagBadge } from "@/components/ui/badge";
 import { SqlProblemDetail } from "./sql-problem-detail";
 import { SqlTheorySection } from "./sql-theory-section";
 import { SqlTheoryDetail } from "./sql-theory-detail";
+import { TopicTutorChat } from "@/components/theory/topic-tutor-chat";
 import { ALL_SQL_PROBLEMS } from "@/lib/sql-problems";
-import { FLAT_SQL_THEORY_TOPICS, TOTAL_SQL_THEORY_TOPICS, getSqlTheoryTopicIndex } from "@/lib/sql-theory";
+import { FLAT_SQL_THEORY_TOPICS, TOTAL_SQL_THEORY_TOPICS, getSqlTheoryTopicIndex, SQL_SYLLABUS } from "@/lib/sql-theory";
 import type { SQLProblem } from "@/lib/sql-problems";
 
 type SqlTab = "theory" | "problems";
@@ -58,6 +59,19 @@ export function SQLSection() {
   const [tab, setTab] = useState<SqlTab>("theory");
   const [selectedProblem, setSelectedProblem] = useState<SQLProblem | null>(null);
   const [selectedTheoryId, setSelectedTheoryId] = useState<string | null>(null);
+  const [generalTutor, setGeneralTutor] = useState(false);
+
+  if (generalTutor) {
+    return (
+      <TopicTutorChat
+        subject="sql"
+        topicTitle=""
+        topicContent={SQL_SYLLABUS}
+        backLabel="SQL"
+        onBack={() => setGeneralTutor(false)}
+      />
+    );
+  }
 
   // Full-bleed detail views take over the whole section, same as OOD's pattern.
   if (tab === "problems" && selectedProblem) {
@@ -101,6 +115,15 @@ export function SQLSection() {
           </div>
         </div>
 
+        <div className="flex items-center gap-2 shrink-0">
+        <button
+          data-tour="sql-tutor-general"
+          onClick={() => setGeneralTutor(true)}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium border border-sky-500/25 bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 transition-all"
+        >
+          <MessagesSquare size={13} /> Test Your Knowledge
+        </button>
+
         {/* Theory / Problems tab switcher */}
         <div data-tour="sql-tabs" className="flex items-center gap-0.5 bg-muted/60 border border-border rounded-xl p-1 shrink-0">
           <button
@@ -125,6 +148,7 @@ export function SQLSection() {
           >
             <Pencil size={13} /> Problems
           </button>
+        </div>
         </div>
       </div>
 

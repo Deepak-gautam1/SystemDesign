@@ -121,3 +121,9 @@ export const FLAT_SQL_THEORY_TOPICS: FlatSqlTheoryTopic[] = SQL_THEORY_CATEGORIE
 export function getSqlTheoryTopicIndex(topicId: string): number {
   return FLAT_SQL_THEORY_TOPICS.findIndex(t => t.topic.id === topicId);
 }
+
+// Compact syllabus digest (category → topic titles) for the general, not-scoped-
+// to-one-topic tutor — same role as ML_SYLLABUS in ml-theory.ts.
+export const SQL_SYLLABUS = SQL_THEORY_CATEGORIES
+  .map(c => `${c.label}: ${c.topics.map(t => t.title).join(", ")}`)
+  .join("\n");

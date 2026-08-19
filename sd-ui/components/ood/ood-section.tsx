@@ -1,13 +1,14 @@
 "use client";
 import { useState } from "react";
-import { Code2, BookOpen, Pencil, Library } from "lucide-react";
+import { Code2, BookOpen, Pencil, Library, MessagesSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DifficultyBadge, TagBadge } from "@/components/ui/badge";
 import { ProblemDetail } from "./problem-detail";
 import { TheorySection } from "./theory-section";
 import { TheoryDetail } from "./theory-detail";
+import { TopicTutorChat } from "@/components/theory/topic-tutor-chat";
 import { ALL_OOD_PROBLEMS } from "@/lib/ood-problems";
-import { FLAT_THEORY_TOPICS, TOTAL_THEORY_TOPICS, getTheoryTopicIndex } from "@/lib/theory";
+import { FLAT_THEORY_TOPICS, TOTAL_THEORY_TOPICS, getTheoryTopicIndex, OOD_SYLLABUS } from "@/lib/theory";
 import type { OODProblem } from "@/lib/ood-problems";
 
 type OodTab = "theory" | "problems";
@@ -58,6 +59,19 @@ export function OODSection() {
   const [tab, setTab] = useState<OodTab>("theory");
   const [selectedProblem, setSelectedProblem] = useState<OODProblem | null>(null);
   const [selectedTheoryId, setSelectedTheoryId] = useState<string | null>(null);
+  const [generalTutor, setGeneralTutor] = useState(false);
+
+  if (generalTutor) {
+    return (
+      <TopicTutorChat
+        subject="ood"
+        topicTitle=""
+        topicContent={OOD_SYLLABUS}
+        backLabel="Object Oriented Design"
+        onBack={() => setGeneralTutor(false)}
+      />
+    );
+  }
 
   // Full-bleed detail views take over the whole section, same as ProblemDetail always has.
   if (tab === "problems" && selectedProblem) {
@@ -101,6 +115,15 @@ export function OODSection() {
           </div>
         </div>
 
+        <div className="flex items-center gap-2 shrink-0">
+        <button
+          data-tour="ood-tutor-general"
+          onClick={() => setGeneralTutor(true)}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium border border-violet-500/25 bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-500/20 transition-all"
+        >
+          <MessagesSquare size={13} /> Test Your Knowledge
+        </button>
+
         {/* Theory / Problems tab switcher */}
         <div data-tour="ood-tabs" className="flex items-center gap-0.5 bg-muted/60 border border-border rounded-xl p-1 shrink-0">
           <button
@@ -125,6 +148,7 @@ export function OODSection() {
           >
             <Pencil size={13} /> Problems
           </button>
+        </div>
         </div>
       </div>
 

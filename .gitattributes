@@ -1,0 +1,12 @@
+# ── Committed vector-DB artifacts ─────────────────────────────────────────────
+# db/ is intentionally tracked (see .gitignore) because the deployed backend
+# has no persistent volume and needs the pre-built Chroma index in the image.
+#
+# But these are large binaries — chroma.sqlite3 alone is ~31MB. Left to its own
+# devices git will sniff them, attempt textual diffs, and try three-way merges
+# that can only ever produce a corrupt index. `binary` (= -text -diff) stops
+# the diffing and any EOL munging; `-merge` makes a conflict here an explicit
+# "pick one side" instead of a silently mangled database file.
+db/chroma.sqlite3   binary -merge
+db/**/*.bin         binary -merge
+db/**/*.pickle      binary -merge

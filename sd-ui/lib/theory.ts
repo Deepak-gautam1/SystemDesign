@@ -120,3 +120,9 @@ export const FLAT_THEORY_TOPICS: FlatTheoryTopic[] = THEORY_CATEGORIES.flatMap(c
 export function getTheoryTopicIndex(topicId: string): number {
   return FLAT_THEORY_TOPICS.findIndex(t => t.topic.id === topicId);
 }
+
+// Compact syllabus digest (category → topic titles) for the general, not-scoped-
+// to-one-topic tutor — same role as ML_SYLLABUS in ml-theory.ts.
+export const OOD_SYLLABUS = THEORY_CATEGORIES
+  .map(c => `${c.label}: ${c.topics.map(t => t.title).join(", ")}`)
+  .join("\n");
