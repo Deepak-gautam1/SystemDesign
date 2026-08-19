@@ -103,4 +103,33 @@ When a nominal column has too many categories for one-hot encoding to be practic
 - **Target encoding** — replace each category with a statistic of the target variable computed for that category (commonly its mean target value), compressing high cardinality into a single informative numeric column, with care taken to avoid leakage from the target into the encoding.
 - **Learned embeddings** — represent each category as a small dense vector learned during training, popular in deep learning pipelines, which can capture similarity between categories that one-hot encoding would otherwise treat as entirely unrelated.`,
   },
+
+  {
+    id: "missing-data-and-imputation",
+    title: "Missing Data — Why It's Missing Decides the Fix",
+    oneLiner: "Reaching straight for the mean skips the only question that matters: whether the missingness itself carries information.",
+    content: `Filling gaps with a column mean is the reflex answer and a weak one. The stronger move is to ask *why* the values are absent first, because the mechanism behind the missingness determines whether any imputation can be safe.
+
+## The Three Mechanisms
+- **MCAR** (missing completely at random) — the absence is unrelated to anything, as with a sensor that drops readings at random. Imputation is safe, and dropping rows is unbiased if there are few.
+- **MAR** (missing at random) — the absence depends on *other observed* features, as when older customers skip an optional web form. Imputation conditioned on those other features is the right tool.
+- **MNAR** (missing not at random) — the absence depends on the missing value itself, as when high earners decline to state income. **No imputation strategy recovers this**, because the data needed to model the gap is exactly the data that is absent. The honest answer is to encode the missingness as a signal rather than to fake a value.
+
+## The Named Techniques
+
+| Technique | How it fills | When it fits |
+|---|---|---|
+| **Mean / median / mode** | A single column-level statistic | Fast baseline; median for skewed columns |
+| **KNN imputation** | Average of the k most similar rows | Correlated features, moderate dataset size |
+| **Iterative / MICE** | Models each column from the others, repeatedly | Strong feature relationships, MAR |
+| **Missingness indicator** | Adds a boolean \`income_is_missing\` column | Whenever absence may itself be predictive |
+
+The **missingness indicator** deserves particular attention because it directly addresses the MNAR case: rather than inventing a value, it lets the model learn that the absence itself predicts the target. Pairing a simple median fill with an indicator column is often stronger than an elaborate imputation alone.
+
+## The Leakage Trap
+An imputer is a fitted model — a mean computed from data — so fitting it on the full dataset before splitting leaks test-set information into training, exactly as fitting a scaler too early does. It belongs inside the cross-validation fold.
+
+## The Decision Rule
+Drop a column when the vast majority of it is absent and no indicator would help; drop rows only when they are few and plausibly MCAR. Otherwise impute — median plus an indicator as the default, something conditional when features are strongly related. Some models sidestep the question entirely: gradient-boosted trees learn a default direction for missing values at each split, which is why they often need no imputation step at all.`,
+  },
 ];

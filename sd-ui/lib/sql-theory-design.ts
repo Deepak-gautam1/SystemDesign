@@ -162,4 +162,110 @@ UPDATE departments SET id = 70 WHERE id = 7;  -- employees.department_id follows
 -- is BLOCKED until those rows are removed or reassigned first
 DELETE FROM products WHERE id = 99;   -- ERROR if any order_items still reference it`,
   },
+
+  {
+    id: "views-procedures-triggers-tradeoffs",
+    title: "Views, Stored Procedures & Triggers — the Trade-Off, Not Just the Syntax",
+    oneLiner: "Knowing the syntax earns nothing on its own — the interview is really asking whether business logic belongs inside the database at all.",
+    content: `A **view** is a saved, named SELECT query living in the schema — querying it re-runs the underlying query live, every time, against current data. It's useful for hiding a complex multi-table join behind a simple, stable name, restricting which columns or rows a role is allowed to see, and giving callers an interface that doesn't have to change even if the underlying tables' structure does later. A **materialized view** — covered under Denormalization Tradeoffs — trades that always-fresh guarantee for speed, precomputing and storing the result instead of recomputing it on every read.
+
+## Stored Procedures: the Case For, and the Case That Won
+A **stored procedure** is a named, precompiled block of procedural logic that lives and runs inside the database itself, invoked with CALL. The case for them: fewer network round-trips, since one CALL can replace several separate statements sent from the application, and centralized behavior that every caller gets identically — including other services, ad-hoc scripts, and analysts querying the same database directly.
+
+The case against is what has actually won out in most modern backend architectures: business logic inside a stored procedure is invisible to the application's version control, code review process, and testing tooling in the way ordinary application code is not. It locks that logic to one database engine's specific procedural dialect — T-SQL, PL/pgSQL, and PL/SQL are three different languages — making a future database migration far harder than it would otherwise be. And it splits "where does this rule actually live" across two separate codebases instead of one. The honest, current answer names this trade-off rather than reciting procedures as unconditionally good or bad practice.
+
+## Triggers: Automatic, and That's the Danger
+A **trigger** is a procedure that fires automatically on an INSERT, UPDATE, or DELETE, without being called explicitly by whatever issued the original statement. The specific reputation problem: a trigger's side effects are invisible from the point of view of the code that ran the triggering statement — a simple, innocent-looking UPDATE can silently cascade into arbitrary additional changes elsewhere, with nothing in the calling code hinting that anything beyond the one row it touched actually happened. Debugging a system with hidden trigger side effects means learning to suspect the schema itself, not just the code that appears to run.
+
+## The Answer That Actually Scores
+Reserve triggers and procedures for narrow, genuinely database-native concerns — enforcing an invariant that must never be bypassable by any caller, or a bulk operation where the network round-trip savings are the entire point — and keep ordinary business logic in the application layer, where it's version-controlled, testable, and portable across database engines.`,
+    codeLabel: "views_procedures_triggers.sql",
+    code: `-- Regular VIEW: always live, re-runs the join on every query.
+CREATE VIEW customer_order_summary AS
+SELECT c.id, c.name, COUNT(o.id) AS order_count, SUM(o.amount) AS total_spent
+FROM Customers c
+LEFT JOIN Orders o ON o.customer_id = c.id
+GROUP BY c.id, c.name;
+
+SELECT * FROM customer_order_summary WHERE id = 42;
+-- Every read re-executes the join underneath -- always current, never stale.
+
+-- Stored procedure: centralizes a multi-step operation behind one CALL.
+CREATE PROCEDURE transfer_funds(from_id INT, to_id INT, amount NUMERIC)
+LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE accounts SET balance = balance - amount WHERE id = from_id;
+    UPDATE accounts SET balance = balance + amount WHERE id = to_id;
+END;
+$$;
+
+CALL transfer_funds(1, 2, 100);
+-- One round trip from the caller -- but this logic now lives in PL/pgSQL,
+-- invisible to the application's own version control and test suite.
+
+-- Trigger: fires automatically, with no visible call site anywhere.
+CREATE FUNCTION log_salary_change() RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.salary <> OLD.salary THEN
+        INSERT INTO salary_audit(employee_id, old_salary, new_salary, changed_at)
+        VALUES (OLD.id, OLD.salary, NEW.salary, NOW());
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_salary_audit
+AFTER UPDATE ON Employee
+FOR EACH ROW EXECUTE FUNCTION log_salary_change();
+
+-- From here on, this update silently writes an extra audit row --
+-- nothing in the statement below hints that it happens.
+UPDATE Employee SET salary = 95000 WHERE id = 7;`,
+  },
+
+  {
+    id: "upsert-and-idempotency",
+    title: "Upsert (INSERT ... ON CONFLICT) & Idempotency",
+    oneLiner: "The syntax is a convenience; the real reason it matters is closing a race condition that a SELECT-then-write can never fully close.",
+    content: `**Upsert** means "insert a new row, or update it if it already exists" as a single atomic statement, in place of a separate SELECT-then-decide-INSERT-or-UPDATE round trip written in application code.
+
+## Why the Naive Version Has a Race Condition
+The obvious approach — SELECT to check if a row exists, then INSERT if not, else UPDATE — has a gap: between the SELECT and the subsequent write, another concurrent request can insert that same row first. The second request's INSERT then fails on a duplicate key, or two near-simultaneous UPDATEs interleave in a way that loses one of them. A single atomic upsert statement closes that window entirely, because the check-and-write happens as one indivisible operation inside the database, with no gap in between for another transaction to interleave into.
+
+## The Syntax
+Postgres: **INSERT INTO t (...) VALUES (...) ON CONFLICT (unique_column) DO UPDATE SET col = EXCLUDED.col** — **EXCLUDED** refers to the row that *would* have been inserted, which is how the UPDATE branch gets access to the new values that were being attempted. **ON CONFLICT (unique_column) DO NOTHING** is the simpler variant for when a duplicate should just be silently skipped rather than merged. (MySQL's equivalent is the differently-spelled INSERT ... ON DUPLICATE KEY UPDATE — same idea, different keyword.)
+
+## The Real Reason This Comes Up in Interviews: Idempotency
+An operation is **idempotent** when running it twice produces the same end state as running it once. Upsert makes this natural: processing the identical request a second time — say, after a client retries an API call that timed out but actually succeeded server-side — updates the same row again rather than inserting a duplicate. The interview question underneath the syntax question is almost never "do you know the ON CONFLICT keyword" — it's whether a candidate recognizes *when* an operation needs to be safely repeatable in the first place.
+
+## The Canonical Scenario
+A webhook handler is a standard example: most webhook providers guarantee **at-least-once** delivery, meaning the same event can legitimately arrive twice. Upserting on the event's own unique id guarantees that processing it a second time has no additional effect — the row already reflects that event, and the second attempt just overwrites it with identical values.`,
+    codeLabel: "upsert_idempotency.sql",
+    code: `-- The race condition in the naive SELECT-then-write pattern (pseudocode):
+-- 1. SELECT * FROM inventory WHERE product_id = 42;   -- not found
+-- 2. -- ANOTHER transaction inserts product_id = 42 here, in the gap --
+-- 3. INSERT INTO inventory (product_id, quantity) VALUES (42, 10);
+--    -- ERROR: duplicate key -- lost the race that step 1 didn't know about
+
+-- Upsert closes the gap: the check-and-write is one atomic statement.
+INSERT INTO inventory (product_id, quantity)
+VALUES (42, 10)
+ON CONFLICT (product_id)
+DO UPDATE SET quantity = inventory.quantity + EXCLUDED.quantity;
+-- EXCLUDED.quantity is the value from THIS insert attempt (10) -- available
+-- to reference even though the row already existed and took the UPDATE path.
+
+-- ON CONFLICT DO NOTHING: silently skip if it already exists, no merge.
+INSERT INTO inventory (product_id, quantity)
+VALUES (42, 10)
+ON CONFLICT (product_id) DO NOTHING;
+
+-- Idempotent webhook processing: the same event id arriving twice (at-least-
+-- once delivery) has no additional effect the second time.
+INSERT INTO processed_webhook_events (event_id, payload, processed_at)
+VALUES ('evt_9f8a2b', '{"type": "payment.succeeded"}', NOW())
+ON CONFLICT (event_id) DO UPDATE
+SET payload = EXCLUDED.payload, processed_at = EXCLUDED.processed_at;
+-- Whether this event arrives once or five times, the end state is identical.`,
+  },
 ];

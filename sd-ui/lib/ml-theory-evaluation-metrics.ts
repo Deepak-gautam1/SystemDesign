@@ -100,4 +100,30 @@ Random k-fold must never be used on time-ordered data, because it can train on r
 ## Where the Held-Out Test Set Fits In
 Cross-validation typically operates over a train/validation split, used for tuning; a final **test set** stays completely untouched until the very end, producing one honest, unbiased estimate of real-world performance rather than a number that's been quietly tuned toward.`,
   },
+
+  {
+    id: "regression-metrics",
+    title: "Regression Metrics — RMSE, MAE & R-Squared",
+    oneLiner: "Precision and recall have no meaning when the target is continuous — and the three standard regression metrics answer three genuinely different questions.",
+    content: `Every classification metric assumes a discrete label, so predicting a house's sale price needs an entirely different toolkit. The three that matter measure error in the target's own units, error robust to outliers, and error relative to a do-nothing baseline.
+
+## The Three Standard Metrics
+
+| Metric | Formula | What it says |
+|---|---|---|
+| **MAE** | \`mean(abs(y - y_hat))\` | Average miss, in the target's units — outlier-robust |
+| **RMSE** | \`sqrt(mean((y - y_hat)^2))\` | Average miss, in the target's units — punishes large errors |
+| **R²** | \`1 - (SS_res / SS_tot)\` | Fraction of variance explained, relative to predicting the mean |
+
+**RMSE** and **MAE** are both expressed in the units of the target, which makes them directly interpretable — an RMSE of \`$25,000\` on house prices means something concrete to a stakeholder in a way that R² does not. The difference is how they treat a big miss: because RMSE squares errors before averaging, one badly mispriced mansion moves it far more than it moves MAE. RMSE is therefore preferred when large errors are disproportionately costly, and MAE when every dollar of error counts equally.
+
+## Worked Example
+Predicting prices for four houses with errors of \`$10K\`, \`$10K\`, \`$10K\`, and \`$100K\`: MAE is \`(10 + 10 + 10 + 100) / 4 = $32.5K\`, while RMSE is \`sqrt((100 + 100 + 100 + 10000) / 4) = $50.7K\`. Both describe the same four predictions, but RMSE is substantially higher because that single \`$100K\` miss dominates once squared. A gap of that size between the two metrics is itself diagnostic — it says the error distribution has a heavy tail rather than being evenly spread.
+
+## R² and the Adjusted Version
+**R²** answers a different question entirely: how much better is this model than simply predicting the mean of the target every time. An R² of \`0.75\` means the model explains 75% of the variance. Its trap is that **R² never decreases when a feature is added** — even pure noise nudges it upward — which makes it useless for comparing models of differing complexity. **Adjusted R²** applies a penalty for the number of predictors and can decrease, which is why it is the honest choice for that comparison.
+
+## One Caveat Worth Naming
+R² is unitless and therefore tempting to read as a universal quality score, but what counts as good is entirely domain-dependent — an R² of \`0.3\` can be a strong result when predicting human behavior, and \`0.95\` can indicate leakage in a setting where that much predictability is implausible. **MAPE** (mean absolute percentage error) expresses error as a percentage, which travels better across differently-scaled targets, but it breaks down whenever actual values approach zero.`,
+  },
 ];

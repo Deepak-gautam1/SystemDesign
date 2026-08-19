@@ -199,4 +199,191 @@ FROM product_stats;
 -- SELECT * FROM orders WHERE shipped_date = NULL;    -- always returns nothing
 SELECT * FROM orders WHERE shipped_date IS NULL;       -- correct way`,
   },
+
+  {
+    id: "exists-vs-in-vs-join",
+    title: "EXISTS vs IN vs JOIN",
+    oneLiner: "They often return the same rows for existence checks — until NULLs or duplicate matches expose that they work nothing alike underneath.",
+    content: `**EXISTS**, **IN**, and **JOIN** all get reached for when a query needs to check whether related rows exist somewhere else — and for clean data with no NULLs and no duplicate matches, they can produce identical results. The differences only surface at the edges, which is exactly where interview questions like to live.
+
+**How each one actually works:** IN materializes the subquery's result into a list first, then checks whether the outer value appears in that list. EXISTS never materializes a list at all — it's a correlated check that asks, row by row, "does at least one matching row exist," and stops looking the instant it finds one. JOIN is a different kind of operation entirely: it widens the result set by attaching matching columns from the other table, rather than simply asking yes-or-no.
+
+**The NOT IN trap — the single most damaging NULL gotcha in SQL.** WHERE x NOT IN (SELECT y FROM t) silently returns zero rows for the entire query if even one row of t.y is NULL, regardless of what x actually is. The reason: NOT IN expands to an AND-chain of x <> y1 AND x <> y2 AND ... for every value in the list, and x <> NULL evaluates to UNKNOWN rather than TRUE or FALSE. One UNKNOWN anywhere in an AND-chain poisons the entire chain — it can never evaluate to TRUE — so not a single row survives the filter, even the ones that would have obviously qualified.
+
+**NOT EXISTS has no such trap.** Because it checks each outer row independently against a correlated condition instead of building one shared list, a stray NULL in the other table simply never produces a match for that particular comparison — it doesn't poison anything else. The practical rule: default to **NOT EXISTS** over **NOT IN** whenever the subquery's column isn't guaranteed NOT NULL, which in practice means defaulting to it almost always.
+
+**The JOIN trap is the mirror-image mistake.** Using an INNER JOIN purely to check "does a related row exist" silently multiplies the outer row once for every matching row on the other side — a customer with three orders shows up three times instead of once, quietly corrupting a COUNT(*) or SUM() computed afterward. EXISTS and IN can never do this, since they only ever ask a yes/no question. Reach for JOIN specifically when columns from the other table are needed in the output; reach for EXISTS when only the yes/no answer matters.`,
+    codeLabel: "exists_vs_in_vs_join.sql",
+    code: `-- Setup: Customers who placed at least one CANCELLED order.
+-- Orders contains one row with customer_id = NULL (a data-quality gap).
+
+-- THE NOT IN TRAP: this returns ZERO rows, always, because of that one NULL --
+-- even customers who clearly never had a cancelled order get excluded.
+SELECT * FROM Customers
+WHERE customer_id NOT IN (
+    SELECT customer_id FROM Orders WHERE order_status = 'CANCELLED'
+);
+-- If ANY row in that subquery has customer_id = NULL, every comparison
+-- "customer_id <> NULL" is UNKNOWN, poisoning the whole AND-chain to
+-- never-true. Result: 0 rows, no matter which customers actually qualify.
+
+-- FIXED: NOT EXISTS checks each customer independently -- immune to the
+-- NULL in Orders, because there is no shared list to poison.
+SELECT * FROM Customers c
+WHERE NOT EXISTS (
+    SELECT 1 FROM Orders o
+    WHERE o.customer_id = c.customer_id AND o.order_status = 'CANCELLED'
+);
+
+-- THE JOIN TRAP: a customer with 3 cancelled orders appears 3 TIMES here,
+-- silently inflating any COUNT(*) run over this result.
+SELECT c.customer_id, c.name
+FROM Customers c
+JOIN Orders o ON o.customer_id = c.customer_id AND o.order_status = 'CANCELLED';
+
+-- FIXED: EXISTS asks only yes/no, so each customer appears at most once --
+-- correct whenever the goal is "which customers," not "which order rows."
+SELECT c.customer_id, c.name
+FROM Customers c
+WHERE EXISTS (
+    SELECT 1 FROM Orders o
+    WHERE o.customer_id = c.customer_id AND o.order_status = 'CANCELLED'
+);`,
+  },
+
+  {
+    id: "count-star-vs-count-column",
+    title: "COUNT(*) vs COUNT(column) vs COUNT(DISTINCT column)",
+    oneLiner: "All three are spelled COUNT, and all three can return a different number from the exact same rows.",
+    content: `**COUNT(*)** counts rows — every row that made it through WHERE/GROUP BY, full stop. It never inspects any particular column's value, so NULLs anywhere in the row are irrelevant to it entirely.
+
+**COUNT(column)** counts only the rows where *that specific column* is **NOT NULL** — a row with a NULL in the counted column is silently skipped. This is the one that trips people up: "how many employees have a manager" is COUNT(manager_id), not COUNT(*), precisely because employees with no manager store NULL there and must not be counted.
+
+**COUNT(DISTINCT column)** layers both effects together: it counts NULL-excluded, then de-duplicated, distinct values of that column. COUNT(DISTINCT department_id) answers "how many different departments are represented," which is a different question from either of the other two.
+
+**Where this bites hardest: after a LEFT JOIN.** An unmatched left row still counts as one row in the result, so COUNT(*) counts it — but every column pulled from the unmatched right-hand table is NULL on that row, so COUNT(right_table.id) correctly excludes it. Writing COUNT(*) when the actual question is "how many customers placed an order" over a LEFT JOIN from customers to orders silently counts customers with zero orders as if they'd placed one. (For how NULLs interact with SUM/AVG/MIN/MAX specifically — a related but distinct set of rules — see the NULL Handling topic.)
+
+**The rule that resolves almost every "which COUNT do I want" question:** decide first whether NULL rows should count as zero occurrences or as one occurrence of "unknown" — that decision alone almost always picks the right form.`,
+    codeLabel: "count_variants.sql",
+    code: `-- Employee(id, name, manager_id)  -- manager_id is NULL for the CEO and any
+-- employee with no manager on record.
+
+SELECT
+    COUNT(*)          AS total_employees,      -- every row, NULLs included
+    COUNT(manager_id)  AS employees_with_manager -- skips rows where manager_id IS NULL
+FROM Employee;
+
+-- The LEFT JOIN trap: how many customers have placed at least one order?
+-- Customers(id, name)   Orders(id, customer_id, amount)
+SELECT
+    COUNT(*)             AS wrong_count,   -- counts EVERY customer row, even zero-order ones
+    COUNT(o.id)           AS right_count   -- counts only rows where an order actually matched
+FROM Customers c
+LEFT JOIN Orders o ON o.customer_id = c.id;
+-- wrong_count == total number of customers, regardless of whether they ordered.
+-- right_count == only customers with a real, matched order row.
+
+-- COUNT(DISTINCT ...): how many distinct departments actually appear?
+SELECT COUNT(DISTINCT department_id) AS distinct_departments
+FROM Employee;`,
+  },
+
+  {
+    id: "date-time-functions",
+    title: "Date & Time Functions — Truncation, Extraction & Bucketing",
+    oneLiner: "Almost every cohort, retention, or month-over-month question is the same DATE_TRUNC pattern wearing a different business label.",
+    content: `Three operations cover the overwhelming majority of date-handling questions asked in interviews: rounding a timestamp *down* to a bucket, pulling out one *component* of it, and doing arithmetic *between or on* dates.
+
+**DATE_TRUNC('month', ts)** rounds a timestamp down to the start of the specified unit — every timestamp in June collapses to June 1st, 00:00:00. This single function is the mechanism behind essentially every "group by month" or "group by week" report: GROUP BY DATE_TRUNC('month', order_date) buckets rows into calendar months without ever storing a separate month column. The same function with 'week', 'day', 'quarter', or 'year' covers every other common granularity.
+
+**EXTRACT(field FROM ts)** pulls out a single numeric component instead of rounding — EXTRACT(dow FROM order_date) gives the day of week, EXTRACT(hour FROM created_at) gives the hour. This is what a question like "which day of the week has the most signups" is actually asking for: GROUP BY EXTRACT(dow FROM signup_date).
+
+**Date arithmetic** — ts + INTERVAL '7 days' shifts a timestamp forward; ts2 - ts1 produces a duration rather than another date. Both are how "orders placed within the last 30 days" and "average time between signup and first purchase" get expressed.
+
+**The cohort-retention pattern, worked concretely:** to measure month-1 retention, truncate each user's signup_date to a month (their cohort), separately truncate every activity row's activity_date to a month, then compare: a user is "retained" in month N if a truncated activity month exists that is exactly N months after their truncated cohort month. The entire pattern is two DATE_TRUNC calls and a difference in truncated months — no special retention function exists, or is needed.
+
+**One sargability warning worth carrying over:** wrapping a date column in DATE_TRUNC (or EXTRACT) inside a **WHERE** clause has the exact same index-defeating problem as wrapping it in YEAR() — the function must run on every row before it can be compared. It's the standard, encouraged tool inside GROUP BY; inside WHERE, a plain range comparison on the raw column is the sargable choice instead.`,
+    codeLabel: "date_time_functions.sql",
+    code: `-- Month-over-month order totals -- the single most common date-bucketing pattern.
+SELECT
+    DATE_TRUNC('month', order_date) AS order_month,
+    COUNT(*)                        AS order_count,
+    SUM(total_amount)               AS revenue
+FROM Orders
+GROUP BY DATE_TRUNC('month', order_date)
+ORDER BY order_month;
+
+-- Which day of the week gets the most signups?
+SELECT
+    EXTRACT(DOW FROM signup_date) AS day_of_week,   -- 0 = Sunday ... 6 = Saturday
+    COUNT(*)                      AS signups
+FROM Users
+GROUP BY EXTRACT(DOW FROM signup_date)
+ORDER BY signups DESC;
+
+-- Simplified month-1 retention: for each cohort month, what fraction of
+-- users who signed up that month were still active exactly one month later?
+WITH cohorts AS (
+    SELECT id AS user_id, DATE_TRUNC('month', signup_date) AS cohort_month
+    FROM Users
+),
+month1_active AS (
+    SELECT DISTINCT a.user_id
+    FROM Activity a
+    JOIN cohorts c ON c.user_id = a.user_id
+    WHERE DATE_TRUNC('month', a.activity_date) = c.cohort_month + INTERVAL '1 month'
+)
+SELECT
+    c.cohort_month,
+    COUNT(DISTINCT c.user_id)                                   AS cohort_size,
+    COUNT(DISTINCT m.user_id)                                   AS retained_month1,
+    COUNT(DISTINCT m.user_id)::numeric / COUNT(DISTINCT c.user_id) AS retention_rate
+FROM cohorts c
+LEFT JOIN month1_active m ON m.user_id = c.user_id
+GROUP BY c.cohort_month;
+
+-- Sargability warning: wrapping a date column in WHERE breaks index use --
+-- same issue as YEAR(order_date), just spelled differently.
+-- SLOW:  WHERE DATE_TRUNC('month', order_date) = '2024-06-01'
+-- FAST:  WHERE order_date >= '2024-06-01' AND order_date < '2024-07-01'`,
+  },
+
+  {
+    id: "string-functions-pattern-matching",
+    title: "String Functions & Pattern Matching",
+    oneLiner: "CONCAT, SUBSTRING, TRIM and LIKE handle most text problems — until a NULL or a case mismatch quietly breaks the query.",
+    content: `A small set of string functions covers nearly every text-manipulation question: joining pieces together, pulling a piece out, and stripping stray characters.
+
+**Concatenation — CONCAT(a, b) or the || operator** joins strings together. The cross-engine gotcha worth knowing by name: the standard **||** operator propagates NULL, exactly like arithmetic does — 'Hello' || NULL evaluates to NULL, silently wiping out an entire concatenated string because one input piece was missing. Postgres's **CONCAT()** function is the deliberate exception: it treats NULL as an empty string instead, so CONCAT('Hello, ', NULL, '!') produces 'Hello, !' rather than vanishing entirely. The two are not interchangeable, and assuming || behaves like CONCAT() is a common bug.
+
+**SUBSTRING(str FROM start FOR length)** extracts a piece of a string by position — pulling an area code out of a phone number, or the first three letters of a product code.
+
+**TRIM / LTRIM / RTRIM** strip leading and/or trailing whitespace (or another specified character). Real-world data imported from spreadsheets or forms is riddled with stray leading and trailing spaces that silently break equality comparisons — 'Alice' and 'Alice ' are different strings as far as = is concerned, and this is a frequent, invisible cause of a JOIN or WHERE clause matching fewer rows than expected.
+
+**Case sensitivity — UPPER()/LOWER() for comparison** — WHERE UPPER(name) = 'ALICE' works, but it carries the same sargability cost as wrapping a date column in a function: the index on name can't be used, since every row's value has to be transformed before comparing. A case-insensitive collation, or a functional index built specifically on UPPER(name), is the way to get case-insensitive matching without abandoning the index.
+
+**LIKE's two wildcards** — % matches any sequence of characters (including none), and _ matches exactly one character. (Leading-wildcard performance, and the trailing-wildcard alternative, are covered in the Anti-Patterns topic — that finding applies here without repeating it.) For matching beyond what % and _ can express, most engines offer regular expressions directly in SQL — Postgres's ~ operator, MySQL's REGEXP — for patterns like "starts with a letter, followed by exactly four digits."`,
+    codeLabel: "string_functions.sql",
+    code: `-- Concatenation and the NULL gotcha
+SELECT 'Hello, ' || NULL || '!';        -- NULL -- the entire expression vanishes
+SELECT CONCAT('Hello, ', NULL, '!');    -- 'Hello, !' -- Postgres's CONCAT treats NULL as ''
+
+-- SUBSTRING: pull the area code out of a phone number stored as '(555) 123-4567'
+SELECT SUBSTRING(phone FROM 2 FOR 3) AS area_code FROM Customers;
+
+-- TRIM: whitespace from imported data silently breaking an equality match
+SELECT * FROM Customers WHERE name = 'Alice';        -- misses 'Alice ' with a trailing space
+SELECT * FROM Customers WHERE TRIM(name) = 'Alice';  -- catches it
+
+-- Case-insensitive match -- correct, but not sargable without a functional index
+SELECT * FROM Customers WHERE UPPER(email) = UPPER('Alice@Example.com');
+-- Sargable alternative: a functional index specifically on UPPER(email)
+CREATE INDEX idx_customers_email_upper ON Customers (UPPER(email));
+
+-- LIKE wildcards: % = any sequence, _ = exactly one character
+SELECT * FROM Products WHERE sku LIKE 'A_-2024-%';   -- 'A' + any 1 char + literal + anything
+
+-- Regex, for patterns LIKE can't express (Postgres's ~ operator)
+SELECT * FROM Products WHERE sku ~ '^[A-Z][0-9]{4}$';   -- one letter, exactly four digits`,
+  },
 ];

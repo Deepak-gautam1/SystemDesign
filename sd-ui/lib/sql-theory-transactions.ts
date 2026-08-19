@@ -152,4 +152,52 @@ The most effective fix is entirely within your control: always acquire locks on 
 UPDATE accounts SET balance = balance - 50 WHERE id = 'A';  -- both transactions
 UPDATE accounts SET balance = balance + 50 WHERE id = 'B';  -- lock A before B: no cycle possible`,
   },
+
+  {
+    id: "optimistic-vs-pessimistic-locking",
+    title: "Optimistic vs Pessimistic Locking",
+    oneLiner: "One assumes conflicts are common and blocks upfront; the other assumes they're rare and only checks at the last moment.",
+    content: `Both approaches solve the same problem — preventing two concurrent transactions from clobbering each other's changes to the same row — but they make opposite bets about how often that conflict actually happens.
+
+## Pessimistic Locking
+**Pessimistic locking** acquires a lock *before* touching a row — SELECT ... FOR UPDATE — which blocks every other transaction from reading or writing that row until the lock is released. It bets that conflicts are common enough that paying the blocking cost upfront, on every transaction, is worth it to guarantee no wasted work later. This is the natural choice for high-contention operations like decrementing inventory during a flash sale, where a large fraction of concurrent transactions genuinely are trying to touch the same rows.
+
+## Optimistic Locking
+**Optimistic locking** takes no lock at all going in. It reads a row's current value alongside a **version** (or timestamp) column, does its work using that snapshot, and only checks for a conflict at the very end: UPDATE ... SET value = new_value, version = version + 1 WHERE id = X AND version = read_version. If another transaction updated the row in between, that WHERE clause matches zero rows, the application sees rows_affected = 0, and knows to retry — read the new state and try again. It bets that conflicts are rare enough that most attempts will simply succeed on the first try, making the blocking cost of pessimistic locking pure waste in the common case.
+
+## Choosing Between Them
+The deciding question is contention: pessimistic locking pays a small, guaranteed cost (blocking) on every transaction; optimistic locking pays nothing on the common, conflict-free path but pays a full retry on the rare path where a conflict actually happened. High contention favors pessimistic, since retries would themselves become common and wasteful. Low contention favors optimistic, since paying to block on every transaction to guard against a rare event wastes far more throughput than the occasional retry costs.
+
+## Where This Connects to Deadlocks
+Pessimistic locking is exactly the mechanism — FOR UPDATE — that can deadlock when two transactions acquire locks on the same rows in different orders, as covered in the Locking & Deadlocks topic. Optimistic locking sidesteps that risk entirely, since it never holds a lock across multiple statements in the first place — there is nothing for a second transaction to wait on.`,
+    codeLabel: "optimistic_vs_pessimistic.sql",
+    code: `-- PESSIMISTIC: lock the row before doing anything else. Any other transaction
+-- trying to touch this same row blocks until this one commits or rolls back.
+BEGIN;
+SELECT quantity FROM inventory WHERE product_id = 42 FOR UPDATE;
+-- ... application checks quantity > 0 ...
+UPDATE inventory SET quantity = quantity - 1 WHERE product_id = 42;
+COMMIT;
+
+
+-- OPTIMISTIC: no lock taken up front. Read the current value AND its version.
+-- Table shape: inventory(product_id, quantity, version)
+BEGIN;
+SELECT quantity, version FROM inventory WHERE product_id = 42;
+-- application reads: quantity = 10, version = 7
+
+-- ... application does its work using that snapshot, no lock held meanwhile ...
+
+-- The update only succeeds if the version STILL matches -- proving nobody
+-- else changed this row in between the read and this write.
+UPDATE inventory
+SET quantity = 9, version = version + 1
+WHERE product_id = 42 AND version = 7;
+
+-- Application checks how many rows this UPDATE actually affected:
+--   1 row  -> success, this transaction won the race, safe to COMMIT
+--   0 rows -> someone else updated the row first (version moved on) --
+--             ROLLBACK, re-read the current value, and retry from the top
+COMMIT;`,
+  },
 ];

@@ -20,8 +20,8 @@ export function SqlTheorySection({ onSelectTopic }: SqlTheorySectionProps) {
       <div className="mb-6 animate-fade-in">
         <p className="text-[12.5px] text-muted-foreground leading-relaxed max-w-2xl">
           {TOTAL_SQL_THEORY_TOPICS} topics covering execution order, joins, window functions, subqueries,
-          transactions, indexing, and database design — everything worth knowing before a SQL interview.
-          Curriculum scope cross-referenced with{" "}
+          transactions, indexing, pagination, and database design — everything worth knowing before a SQL
+          interview. Curriculum scope cross-referenced with{" "}
           <a
             href="https://github.com/xoraus/CrackingTheSQLInterview"
             target="_blank"

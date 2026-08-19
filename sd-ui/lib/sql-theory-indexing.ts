@@ -123,4 +123,95 @@ SELECT * FROM orders WHERE customer_id = 42;
 -- the full row required
 SELECT order_date, total FROM orders WHERE customer_id = 42;`,
   },
+
+  {
+    id: "pagination-limit-offset-vs-keyset",
+    title: "Pagination — LIMIT/OFFSET vs Keyset (Seek) Pagination",
+    oneLiner: "OFFSET pagination gets slower on every deeper page, at the exact same rate the product wants people scrolling further.",
+    content: `**LIMIT/OFFSET** is the obvious way to paginate: LIMIT 20 OFFSET 100000 asks for 20 rows starting after the first 100,000. The problem is what OFFSET actually costs the engine: it still has to walk through and discard all 100,000 skipped rows before it can return anything, every single time. Page 1 is fast; page 5,000 of the same query is dramatically slower, even though both requests return the exact same 20 rows' worth of work at the point of output.
+
+## The Second Problem: Correctness Under Concurrent Writes
+OFFSET pagination doesn't just get slow — it can get *wrong*. If a row is inserted or deleted between two page requests, "row number 100,020" shifts to a different actual row than it meant a moment earlier, which can cause a user paging through results to see the same row twice, or skip one entirely, purely because the underlying data moved while they were scrolling.
+
+## Keyset (Seek) Pagination
+**Keyset pagination** fixes both problems by anchoring to an actual value instead of a row count. Rather than "skip 100,000 rows," it remembers the last row's sort-key value from the previous page and asks: give me the next 20 rows **WHERE sort_key > last_seen_value ORDER BY sort_key LIMIT 20**. With an index on sort_key, this is a direct index seek straight to that value — constant-time, regardless of how deep into the result set the request is, and immune to the shifting-window problem, since it's anchored to a real value rather than a position that can move.
+
+**Concrete cost comparison:** OFFSET 100000 LIMIT 20 scans and discards 100,000 rows before returning 20. WHERE id > 100000 ORDER BY id LIMIT 20, with an index on id, seeks directly to id = 100000 and reads the next 20 rows forward — no discarded work at all, whether that anchor value is row 20 or row 20 million.
+
+## The One Real Tradeoff
+Keyset pagination can only move relative to a known position — "give me the next page from here" — it has no way to jump directly to an arbitrary page number, since it never counts rows at all. That makes it the right fit for infinite-scroll and next/previous interfaces, but a poor fit for numbered page links ("jump to page 47"), where OFFSET's ability to compute any page directly — despite being slower at depth — remains the simpler tool.`,
+    codeLabel: "pagination.sql",
+    code: `-- OFFSET pagination: correct, but the cost grows with how deep the page is.
+-- This has to walk past and discard 100,000 rows before returning anything.
+SELECT id, title, created_at
+FROM Posts
+ORDER BY id
+LIMIT 20 OFFSET 100000;
+
+-- Keyset (seek) pagination: anchor to the last row seen on the previous page.
+-- With an index on id, this seeks DIRECTLY to id = 100000 -- no rows discarded,
+-- regardless of how far into the table 100000 actually is.
+SELECT id, title, created_at
+FROM Posts
+WHERE id > 100000          -- 100000 was the last id shown on the previous page
+ORDER BY id
+LIMIT 20;
+
+-- Keyset pagination on a non-unique sort column needs a tiebreaker to stay
+-- deterministic -- compare the pair, not just the first column, or rows
+-- with an identical created_at can be skipped or repeated.
+SELECT id, title, created_at
+FROM Posts
+WHERE (created_at, id) > ('2024-06-01 10:00:00', 4521)
+ORDER BY created_at, id
+LIMIT 20;`,
+  },
+
+  {
+    id: "table-partitioning",
+    title: "Table Partitioning",
+    oneLiner: "Splitting one table into physical slices the planner can skip entirely — often for a reason that has nothing to do with query speed.",
+    content: `**Table partitioning** splits one logical table into multiple physical sub-tables — partitions — each holding a subset of rows based on a partition key, while application code still queries it as a single table.
+
+## The Three Common Strategies
+- **RANGE** — each partition holds a contiguous range of the key's values, most commonly a month or year of a date column. This is the default choice for time-series and event data.
+- **LIST** — each partition holds an explicit, named set of values, such as one partition per region or per status.
+- **HASH** — rows are assigned to a partition by hashing the key, which spreads data roughly evenly when there's no natural range or category to split on.
+
+## Partition Pruning Is the Query-Speed Payoff
+If a query's WHERE clause can be matched against the partition key — WHERE order_date >= '2024-06-01' against a table partitioned by month — the planner can skip every partition that couldn't possibly contain a matching row without even opening them, called **partition pruning**. A query that would otherwise scan the entire table instead scans only the relevant slice, shrinking the effective table size to whatever fits the filter.
+
+## The Other Reason: Fast Bulk Deletes
+The operational reason many time-series-heavy systems partition in the first place has nothing to do with SELECT speed at all: dropping an entire old partition — deleting all of 2019's data by dropping that one partition — is a fast, near-instant metadata operation, instead of a row-by-row DELETE that has to be logged and can bloat the table with dead rows needing cleanup afterward. For systems that regularly purge old data on a retention policy, this is often the dominant motivation.
+
+## Partitioning Is Not Sharding
+Partitioning splits data into multiple physical segments **within one database instance**; **sharding** splits data across **multiple separate database servers** entirely, and is a system-design/scaling concern rather than a single-database SQL one. It's worth stating that distinction plainly in an interview, since the two get used loosely in casual conversation.
+
+## Partitioning and Indexing Are Complementary, Not Substitutes
+An index helps the engine find rows quickly *within* wherever they're stored; partitioning changes how the table is physically organized in the first place. A partitioned table still benefits from indexes built on each individual partition — the two techniques solve different problems and are normally used together.`,
+    codeLabel: "table_partitioning.sql",
+    code: `-- RANGE partitioning by month -- the standard shape for time-series data.
+CREATE TABLE orders (
+    id         SERIAL,
+    order_date DATE NOT NULL,
+    amount     NUMERIC
+) PARTITION BY RANGE (order_date);
+
+CREATE TABLE orders_2024_01 PARTITION OF orders
+    FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
+CREATE TABLE orders_2024_02 PARTITION OF orders
+    FOR VALUES FROM ('2024-02-01') TO ('2024-03-01');
+
+-- Partition pruning: this filter matches only January, so the planner
+-- never even opens orders_2024_02 (or any other month's partition).
+SELECT * FROM orders
+WHERE order_date >= '2024-01-01' AND order_date < '2024-02-01';
+
+-- Fast bulk delete: dropping a whole partition is near-instant metadata
+-- work, not a logged, row-by-row DELETE.
+DROP TABLE orders_2024_01;   -- all of January's rows, gone in one metadata op
+
+-- Contrast: the row-by-row equivalent, slow and heavily logged.
+-- DELETE FROM orders WHERE order_date >= '2024-01-01' AND order_date < '2024-02-01';`,
+  },
 ];

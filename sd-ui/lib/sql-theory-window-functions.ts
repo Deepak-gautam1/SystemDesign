@@ -189,4 +189,53 @@ SELECT (
   LIMIT 1 OFFSET 2          -- OFFSET = N - 1, so N = 3 here
 ) AS third_highest_salary;`,
   },
+
+  {
+    id: "gaps-and-islands-and-median",
+    title: "Gaps and Islands, and the Median Pattern",
+    oneLiner: "One subtraction trick turns a run of consecutive values into a single group — no procedural loop required.",
+    content: `**Gaps and islands** is the standard name for a whole family of interview questions that all reduce to the same shape: find the maximal runs — "islands" — of consecutive values in a column, separated by "gaps" where the sequence breaks. Consecutive login days, consecutive order IDs, a stock's consecutive up-days — all the same underlying problem.
+
+**The trick that solves all of them:** rank the rows in order with ROW_NUMBER(), then subtract that row number from the actual value. Within one unbroken run, both the value and the row number increase by exactly 1 each step, so their difference stays **constant** for the entire island — and that difference changes at every gap. Grouping by this constant collapses each island down to a single group, ready for MIN/MAX/COUNT.
+
+**Worked example:** login dates 1, 2, 3, then a gap, then 5, 6, 7. Row numbers are 1 through 6 in order. The date-minus-row-number values come out 0, 0, 0 for the first three dates (island A) and 1, 1, 1 for the last three (island B) — two distinct constants, two islands, found without a single explicit loop.
+
+**Median has no standard aggregate function in most engines**, unlike AVG or SUM, and it needs different handling depending on whether the row count is odd or even — the median of an even count is the *average of the two middle values*, not either one alone. Postgres and several other engines provide **PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY value)**, which computes the 50th percentile with linear interpolation between the two middle values automatically, correctly handling the odd/even split without any extra logic. Where PERCENTILE_CONT isn't available, the manual equivalent is two window-ranked passes — one ascending, one descending — keeping only the row(s) where both ranks are within one of each other, then averaging.
+
+**Both patterns share a lineage** with the Nth-highest-value pattern and running-total frames covered elsewhere in this category — all three lean on the same core idea, that ranking rows with a window function turns an otherwise procedural, row-by-row problem into a single declarative pass.`,
+    codeLabel: "gaps_and_islands_median.sql",
+    code: `-- Gaps and islands: find each streak of consecutive login dates per user.
+-- LoginDays(user_id, login_date) -- one row per day a user logged in.
+WITH numbered AS (
+  SELECT
+    user_id,
+    login_date,
+    ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY login_date) AS rn
+  FROM LoginDays
+),
+islands AS (
+  SELECT
+    user_id,
+    login_date,
+    login_date - (rn * INTERVAL '1 day') AS island_key   -- constant within one streak
+  FROM numbered
+)
+SELECT
+  user_id,
+  MIN(login_date) AS streak_start,
+  MAX(login_date) AS streak_end,
+  COUNT(*)        AS streak_length
+FROM islands
+GROUP BY user_id, island_key
+ORDER BY user_id, streak_start;
+-- Dates 1,2,3 all share one island_key; dates 5,6,7 (after the gap) share a
+-- DIFFERENT island_key -- exactly two groups, found with no explicit loop.
+
+-- Median via PERCENTILE_CONT -- handles the odd/even split automatically.
+SELECT
+  department_id,
+  PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY salary) AS median_salary
+FROM Employee
+GROUP BY department_id;`,
+  },
 ];

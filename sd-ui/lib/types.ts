@@ -67,8 +67,12 @@ export interface TheoryTopic {
   id: string;
   title: string;
   oneLiner: string;
-  content: string;      // markdown prose — headers, bold, lists, tables. No backtick code spans/fences.
-  code?: string;        // optional C++ snippet or plain-text/ASCII diagram, rendered in a code panel
+  // Markdown prose — `##` headings, bold, lists, GFM tables.
+  // SQL/OOD topics keep code out of here and use the `code` panel below instead.
+  // ML topics have no code panel, so they DO use single-backtick inline spans for
+  // formulas and identifiers — escaped as \` since content is a template literal.
+  content: string;
+  code?: string;        // optional C++/SQL snippet or ASCII diagram, rendered in a side panel
   codeLabel?: string;   // small filename/label shown above the code panel, e.g. "singleton.cpp"
 }
 

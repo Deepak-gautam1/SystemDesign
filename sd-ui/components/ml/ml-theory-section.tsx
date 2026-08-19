@@ -17,12 +17,12 @@ export function MlTheorySection({ onSelectTopic }: MlTheorySectionProps) {
   return (
     <div data-tour="ml-theory-grid">
       {/* Intro + credit line */}
-      <div className="mb-6 animate-fade-in">
-        <p className="text-[12.5px] text-muted-foreground leading-relaxed max-w-2xl">
-          {TOTAL_ML_THEORY_TOPICS} topics covering evaluation metrics, bias/variance, feature engineering,
-          ensembles, dimensionality reduction, neural network fundamentals, and reusable answer frameworks
-          for open-ended questions — everything worth knowing before an ML interview, theory only, no coding
-          required. Curriculum scope cross-referenced with{" "}
+      <div className="mb-4 animate-fade-in">
+        <p className="text-[12.5px] text-muted-foreground leading-relaxed max-w-3xl">
+          {TOTAL_ML_THEORY_TOPICS} topics spanning the classical algorithms, evaluation and diagnosis,
+          feature engineering, statistics, deep learning, NLP and LLMs, ML system design, and production
+          concerns — plus reusable answer frameworks for open-ended questions. Everything worth knowing
+          before an ML interview, theory only, no coding required. Curriculum scope cross-referenced with{" "}
           <a
             href="https://github.com/andrewekhalel/MLQuestions"
             target="_blank"
@@ -31,14 +31,37 @@ export function MlTheorySection({ onSelectTopic }: MlTheorySectionProps) {
           >
             andrewekhalel/MLQuestions <ExternalLink size={10} />
           </a>
-          .
+          {" "}and widely-used interview question banks.
         </p>
+      </div>
+
+      {/* Jump nav — 15 categories is a lot of scrolling, so make each one reachable in one click */}
+      <div className="flex flex-wrap gap-1.5 mb-6 animate-fade-in">
+        {ML_THEORY_CATEGORIES.map(cat => (
+          <button
+            key={cat.id}
+            onClick={() => document.getElementById(`ml-cat-${cat.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-all hover:-translate-y-px",
+              cat.bg, cat.border, cat.color
+            )}
+          >
+            <LucideIcon name={cat.icon} size={10} />
+            {cat.label}
+            <span className="font-mono opacity-60">{cat.topics.length}</span>
+          </button>
+        ))}
       </div>
 
       {/* Category sections */}
       <div className="flex flex-col gap-7 pb-4">
         {ML_THEORY_CATEGORIES.map((cat, ci) => (
-          <section key={cat.id} className="animate-fade-in" style={{ animationDelay: `${ci * 40}ms` }}>
+          <section
+            key={cat.id}
+            id={`ml-cat-${cat.id}`}
+            className="animate-fade-in scroll-mt-4"
+            style={{ animationDelay: `${ci * 40}ms` }}
+          >
             <div className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl mb-3 border-l-[3px] bg-muted/40", cat.border)}>
               <span className={cat.color}>
                 <LucideIcon name={cat.icon} size={16} />

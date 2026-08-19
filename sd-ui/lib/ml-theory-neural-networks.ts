@@ -146,4 +146,49 @@ Deciding what to keep, add, and expose — rather than being forced to overwrite
 
 A useful mental model: batch norm keeps the numbers flowing through the network well-behaved; dropout keeps the network from memorizing the training set by leaning on a small clique of neurons.`,
   },
+
+  {
+    id: "optimizers",
+    title: "Optimizers — SGD, Momentum, RMSprop & Adam",
+    oneLiner: "\"Adam is better\" is the answer that loses points — the real one is that Adam converges faster while well-tuned SGD often generalizes better.",
+    content: `Plain gradient descent applies one global learning rate to every parameter and treats each step as independent of the last. Modern optimizers fix those two limitations separately, and **Adam** is essentially the combination of both fixes.
+
+## The Two Fixes, and How They Compose
+
+| Optimizer | What it adds | Mechanism |
+|---|---|---|
+| **SGD + momentum** | Memory of past direction | A running average of past gradients — the first moment |
+| **RMSprop** | A per-parameter learning rate | Divides by a running average of squared gradients — the second moment |
+| **Adam** | Both at once | First moment for direction, second for per-parameter scaling |
+
+**Momentum** accumulates a running average of past gradients so updates keep moving in a consistent direction, damping the oscillation that plain SGD suffers in narrow ravines. **RMSprop** attacks a different problem: parameters whose gradients are consistently large get a smaller effective step, and rarely-updated parameters get a larger one, which is precisely why adaptive methods handle **sparse gradients** well. **Adam** maintains both running averages, plus a bias correction for the fact that both start at zero and are therefore biased toward zero in the first few steps.
+
+## Why Adam Is Not Simply the Right Answer
+Adam converges faster and requires far less learning-rate tuning, which makes it the sensible default. But **well-tuned SGD with momentum frequently generalizes better** — which is why a great deal of computer-vision research still trains with it — and the honest answer names that tradeoff rather than declaring a winner. The reasoning is that Adam's adaptive scaling can settle into sharp minima that fit the training set slightly too well.
+
+## Why AdamW Exists
+Adding an L2 penalty to the loss is **not** equivalent to weight decay once Adam rescales each update by its second-moment estimate: the penalty gets divided down for exactly those parameters with large gradients, so regularization is applied unevenly and weakly. **AdamW** decouples weight decay from the gradient update, applying it directly to the weights instead, which restores the intended behavior — and it is the standard choice for training transformers.
+
+## The Practical Default
+Adam or AdamW to get a model training quickly, with SGD plus momentum worth trying when squeezing out final generalization on a well-understood problem. The learning rate remains the most important hyperparameter regardless of which optimizer is chosen.`,
+  },
+
+  {
+    id: "training-mechanics",
+    title: "Training Mechanics — Epochs, Schedules, Initialization & Augmentation",
+    oneLiner: "A cluster of small, near-guaranteed questions — including one whose answer is symmetry, not scale.",
+    content: `Several short deep-learning questions recur constantly and are cheap to lock down. They share a theme: each concerns how training is *set up* rather than what the network computes.
+
+## Epoch, Batch and Iteration
+An **epoch** is one full pass over the training set; the **batch size** is how many examples are processed before the weights update once; an **iteration** is a single such update. With 10,000 training examples and a batch size of \`100\`, one epoch is \`100\` iterations, and 20 epochs is \`2,000\` iterations. The more interesting version of this question asks why training uses ordered epochs at all rather than sampling with replacement — the answer being that epochs guarantee every example is seen an equal number of times, which sampling only achieves in expectation.
+
+## Why Weights Cannot Be Initialized to Zero
+This question is asked far more often than any specific initialization scheme, and the answer is **symmetry**, not magnitude. If every weight in a layer starts identical, every neuron in that layer receives the same gradient and therefore applies the same update — they remain identical forever, and the layer has the representational capacity of a single neuron no matter how wide it is. Random initialization breaks that symmetry. **Xavier** initialization scales the initial variance for sigmoid and tanh layers, **He** initialization does the equivalent for ReLU, and both exist to keep activation variance stable across depth rather than to break symmetry.
+
+## Learning Rate Schedules
+A learning rate that is good early is usually too large late, once the optimizer is near a minimum and needs to stop overshooting it. **Decay schedules** — step, cosine, or exponential — shrink it over training. **Warmup** does the reverse at the very start, ramping up from near zero over the first few hundred steps, which stabilizes training for transformers and large batch sizes where an early large step can be catastrophic.
+
+## Data Augmentation and Its One Rule
+**Data augmentation** expands a limited training set by applying transformations that preserve the label — crops, rotations, and color shifts for images. The rule that gets tested is that augmentation must be **label-preserving and realistic for the actual data distribution**: horizontally flipping a photograph of a cat is fine, while horizontally flipping a handwritten digit or a line of text destroys the very thing being classified.`,
+  },
 ];

@@ -168,4 +168,55 @@ SELECT
 FROM Sales
 GROUP BY region;`,
   },
+
+  {
+    id: "cte-materialization",
+    title: "CTE Materialization — the \"Optimization Fence\" Myth, Corrected",
+    oneLiner: "A lot of still-circulating advice about CTEs describes exactly the opposite of how modern Postgres actually behaves.",
+    content: `For years, the standard advice was that a CTE is an **optimization fence**: the engine computes it in complete isolation, then hands the result to the outer query, with no ability to push outer filters down into it. A CTE referencing a huge table, followed by an outer WHERE that only needed a handful of rows from it, paid the cost of computing the whole thing regardless — the fix used to be manually copying that filter inside the CTE itself.
+
+**That advice is now outdated for the common case.** As of PostgreSQL 12, a CTE that is referenced **exactly once** and does not perform an INSERT, UPDATE, or DELETE is **inlined by default** — treated exactly like an ordinary subquery, with the optimizer free to push predicates down into it and choose join orders across the fence as if it had never existed. A candidate who states "CTEs always act as an optimization fence" as a flat, unconditional fact is repeating advice that stopped being true years ago.
+
+**A CTE referenced more than once still materializes by default**, and this is usually exactly what's wanted — computing an expensive aggregation once and reusing that single result across multiple later references, rather than recomputing it from scratch at every reference point.
+
+**Explicit control exists for when the default guess is wrong either way:** MATERIALIZED forces a CTE to be computed once and treated as an opaque result, even if referenced only a single time — worth forcing when the CTE calls a volatile function (like one involving randomness) that must run exactly once, not once per place the optimizer decides to inline it. NOT MATERIALIZED forces inlining even across multiple references, worth doing when the computation is cheap and predicate pushdown into every use site would help more than reusing one shared result would.
+
+**The answer that actually scores well in an interview** isn't "CTEs are (or aren't) a fence" as a blanket claim — it's naming the actual rule: referenced once and non-modifying inlines by default in modern Postgres, referenced multiple times still materializes by default, and the MATERIALIZED / NOT MATERIALIZED keywords exist to override either direction explicitly when the default guess doesn't fit.`,
+    codeLabel: "cte_materialization.sql",
+    code: `-- Referenced exactly once, non-modifying: inlined by default in Postgres 12+.
+-- The outer WHERE can be pushed down into the CTE as if it were a subquery.
+WITH big_orders AS (
+    SELECT * FROM Orders   -- a huge table
+)
+SELECT * FROM big_orders WHERE customer_id = 42;
+-- Behaves as if written: SELECT * FROM Orders WHERE customer_id = 42;
+-- -- the planner does NOT compute the full Orders table first.
+
+-- Referenced multiple times: still materialized (computed once) by default --
+-- usually exactly what's wanted, to avoid recomputing an expensive aggregate.
+WITH order_totals AS (
+    SELECT customer_id, SUM(amount) AS total FROM Orders GROUP BY customer_id
+)
+SELECT * FROM order_totals WHERE total > 10000
+UNION ALL
+SELECT * FROM order_totals WHERE total < 100;
+-- order_totals is computed ONCE and reused for both halves of the UNION ALL,
+-- not recalculated per reference.
+
+-- Explicit override: force materialization even though referenced once --
+-- e.g. because the CTE calls a volatile/random function that must run once.
+WITH sampled AS MATERIALIZED (
+    SELECT *, RANDOM() AS r FROM Orders
+)
+SELECT * FROM sampled WHERE r < 0.1;
+
+-- Explicit override the other way: force inlining even with multiple
+-- references, when predicate pushdown into every use site is cheap and helpful.
+WITH cheap_lookup AS NOT MATERIALIZED (
+    SELECT id, name FROM Customers
+)
+SELECT * FROM cheap_lookup WHERE id = 1
+UNION ALL
+SELECT * FROM cheap_lookup WHERE id = 2;`,
+  },
 ];
