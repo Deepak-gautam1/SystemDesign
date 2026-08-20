@@ -1,12 +1,10 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { Building2 } from "lucide-react";
-import { marked } from "marked";
 import { cn } from "@/lib/utils";
+import { renderMarkdownWithMath } from "@/lib/render-markdown";
 import { SourcePanel } from "./source-panel";
 import type { Message } from "@/lib/types";
-
-marked.setOptions({ breaks: true, gfm: true });
 
 function AIAvatar() {
   return (
@@ -29,7 +27,7 @@ function AIMessage({ msg }: { msg: Message }) {
 
   useEffect(() => {
     if (!ref.current) return;
-    const raw = marked.parse(msg.content || "") as string;
+    const raw = renderMarkdownWithMath(msg.content || "");
     ref.current.innerHTML = raw + (msg.streaming
       ? '<span class="inline-block w-[2px] h-[14px] bg-primary animate-stream-cursor ml-0.5 align-middle rounded-sm"></span>'
       : "");

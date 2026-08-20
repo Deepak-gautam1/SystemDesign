@@ -1,7 +1,8 @@
 "use client";
+import { useState } from "react";
 import {
   Search, BookOpen, Target, Microscope, ChevronRight, HelpCircle,
-  LayoutDashboard, Building2, Code2, Database, Brain, GitBranch, LogIn, LogOut,
+  LayoutDashboard, Building2, Code2, Database, Brain, GitBranch, LogIn, LogOut, UserRound,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -58,6 +59,14 @@ export function Header({
   const meta = SECTION_META[section];
   const SectionIcon = meta.Icon;
   const { data: authSession, status: authStatus } = useSession();
+  // Google avatar URLs can 403/expire independently of the session being
+  // valid — `image` being present only means "we have a URL," not "it loads."
+  // Track load failure separately so a dead URL falls back to a generic icon
+  // instead of the browser's broken-image glyph. Keyed by URL so a different
+  // account's photo (a different string) gets a fresh chance to load.
+  const [brokenImage, setBrokenImage] = useState<string | null>(null);
+  const avatarUrl = authSession?.user?.image;
+  const showAvatar = avatarUrl && avatarUrl !== brokenImage;
 
   return (
     <header className={cn(
@@ -157,11 +166,16 @@ export function Header({
           title={`Signed in as ${authSession?.user?.email ?? "you"} — click to sign out`}
           className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground px-2 h-7 rounded-lg hover:bg-muted transition-colors"
         >
-          {authSession?.user?.image ? (
+          {showAvatar ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={authSession.user.image} alt="" className="w-5 h-5 rounded-full" />
+            <img
+              src={avatarUrl}
+              alt=""
+              className="w-5 h-5 rounded-full"
+              onError={() => setBrokenImage(avatarUrl)}
+            />
           ) : (
-            <LogOut size={13} />
+            <UserRound size={13} />
           )}
           <span className="hidden lg:inline">Sign out</span>
         </button>
