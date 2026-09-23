@@ -52,7 +52,8 @@ export function TheoryDetailShell({
   defaultCodeLabel = "example",
   tutorTourId,
 }: TheoryDetailShellProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);   // prose scroller (md and up)
+  const splitRef = useRef<HTMLDivElement>(null);    // whole-column scroller (phones)
   const proseRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<PanelTab>("theory");
   const { isDone, toggleDone } = useTheoryProgress(namespace);
@@ -68,6 +69,7 @@ export function TheoryDetailShell({
       proseRef.current.innerHTML = marked.parse(topic.content) as string;
     }
     scrollRef.current?.scrollTo({ top: 0 });
+    splitRef.current?.scrollTo({ top: 0 });
   }, [topic.id, topic.content, tab]);
 
   // Don't leave the tutor open under a topic it no longer applies to.
@@ -131,13 +133,14 @@ export function TheoryDetailShell({
         </div>
       </div>
 
-      {/* Split layout — prose left, code panel right when the topic has one */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      {/* Split layout — prose left, code panel right when the topic has one.
+          On phones the two stack and scroll together as a single column. */}
+      <div ref={splitRef} className="flex flex-col md:flex-row flex-1 min-h-0 overflow-y-auto md:overflow-hidden">
         <div
           ref={scrollRef}
           className={cn(
-            "overflow-y-auto scrollbar-thin p-6",
-            hasCode ? "w-[45%] shrink-0 border-r border-border" : "flex-1"
+            "md:overflow-y-auto scrollbar-thin p-4 sm:p-6",
+            hasCode ? "md:w-[45%] md:shrink-0 md:border-r border-border" : "flex-1"
           )}
         >
           <div className={cn(hasCode ? "" : "max-w-2xl mx-auto")}>
@@ -156,11 +159,11 @@ export function TheoryDetailShell({
         </div>
 
         {hasCode && (
-          <div className="flex-1 min-w-0 flex flex-col bg-slate-950 overflow-hidden">
+          <div className="shrink-0 md:flex-1 min-w-0 flex flex-col bg-slate-950 md:overflow-hidden">
             <div className="shrink-0 flex items-center px-4 py-2 bg-slate-900 border-b border-slate-800">
               <span className="font-mono text-[11px] text-slate-400">{topic.codeLabel ?? defaultCodeLabel}</span>
             </div>
-            <div className="flex-1 overflow-auto p-4">{renderCode!(topic.code!)}</div>
+            <div className="overflow-x-auto p-4 md:flex-1 md:overflow-auto">{renderCode!(topic.code!)}</div>
           </div>
         )}
       </div>

@@ -209,32 +209,32 @@ export function ProblemDetail({ problem, onBack }: ProblemDetailProps) {
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Problem bar */}
-      <div className="shrink-0 flex items-center gap-3 px-4 h-12 border-b border-border bg-card">
-        <button onClick={onBack}
-          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-xs border border-border rounded-lg px-2.5 py-1.5 transition-colors">
-          <ArrowLeft size={12} /> Problems
+      <div className="shrink-0 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 h-12 border-b border-border bg-card">
+        <button onClick={onBack} aria-label="Back to problems"
+          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-xs border border-border rounded-lg px-2.5 py-1.5 transition-colors shrink-0">
+          <ArrowLeft size={12} /> <span className="hidden sm:inline">Problems</span>
         </button>
         <div className="w-px h-4 bg-border" />
         <span className="font-display font-semibold text-sm text-foreground truncate">{problem.title}</span>
         <DifficultyBadge difficulty={problem.difficulty} />
-        <div className="ml-auto flex items-center gap-1.5">
-          <button onClick={() => { setPanelMode("learn"); setShowEval(false); }}
+        <div className="ml-auto flex items-center gap-1.5 shrink-0">
+          <button onClick={() => { setPanelMode("learn"); setShowEval(false); }} aria-label="Learn"
             className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
               panelMode==="learn" ? "bg-primary/10 text-primary border-primary/25" : "border-border text-muted-foreground hover:text-foreground")}>
-            <BookOpen size={12} /> Learn
+            <BookOpen size={12} /> <span className="hidden sm:inline">Learn</span>
           </button>
-          <button onClick={() => { setPanelMode("practice"); setShowSolution(false); }}
+          <button onClick={() => { setPanelMode("practice"); setShowSolution(false); }} aria-label="Practice"
             className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
               panelMode==="practice" ? "bg-violet-500/10 text-violet-500 border-violet-500/25" : "border-border text-muted-foreground hover:text-foreground")}>
-            <Pencil size={12} /> Practice
+            <Pencil size={12} /> <span className="hidden sm:inline">Practice</span>
           </button>
         </div>
       </div>
 
-      {/* Split layout */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      {/* Split layout — on phones stacked: description capped on top, editor fills the rest */}
+      <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
         {/* LEFT: Description */}
-        <div className="w-[40%] shrink-0 overflow-y-auto scrollbar-thin border-r border-border p-5">
+        <div className="max-h-[35vh] md:max-h-none md:w-[40%] shrink-0 overflow-y-auto scrollbar-thin border-b md:border-b-0 md:border-r border-border p-4 md:p-5">
           <div className="flex flex-wrap gap-1.5 mb-4">{problem.tags.map(t=><TagBadge key={t} label={t}/>)}</div>
           <div className="mb-4">
             <h3 className="text-[10px] font-mono font-semibold uppercase tracking-widest text-muted-foreground mb-2">OOP Concepts</h3>
@@ -249,19 +249,19 @@ export function ProblemDetail({ problem, onBack }: ProblemDetailProps) {
         {/* RIGHT: Code + eval panel */}
         <div className="flex-1 min-w-0 flex flex-col bg-slate-950 overflow-hidden">
           {/* Code toolbar */}
-          <div className="shrink-0 flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-800">
-            <span className="font-mono text-[11px] text-slate-400">
+          <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-2 bg-slate-900 border-b border-slate-800">
+            <span className="font-mono text-[11px] text-slate-400 truncate min-w-0">
               {panelMode==="learn" ? problem.filename : "practice.cpp"}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {/* Practice mode controls */}
               {panelMode==="practice" && (
                 <>
-                  <button onClick={() => setShowSolution(s=>!s)}
+                  <button onClick={() => setShowSolution(s=>!s)} aria-label={showSolution ? "Hide solution" : "Reveal solution"}
                     className={cn("flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border transition-all",
                       showSolution ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25"
                                    : "text-slate-400 border-slate-700 hover:border-slate-500 hover:text-slate-200")}>
-                    <Eye size={11} /> {showSolution ? "Hide solution" : "Reveal solution"}
+                    <Eye size={11} /> <span className="hidden sm:inline">{showSolution ? "Hide solution" : "Reveal solution"}</span>
                   </button>
 
                   {/* ── Evaluate button ── */}

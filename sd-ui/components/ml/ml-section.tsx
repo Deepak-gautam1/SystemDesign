@@ -44,11 +44,12 @@ export function MLSection() {
   return (
     <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-5">
       {/* Header — no Theory/Problems tabs here, this section is theory-only */}
-      <div className="flex items-center gap-3 mb-6 animate-fade-in">
+      <div className="flex flex-wrap items-center gap-3 mb-6 animate-fade-in">
         <div className="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/25 flex items-center justify-center text-pink-500 shrink-0">
           <Brain size={20} />
         </div>
-        <div className="min-w-0">
+        {/* basis keeps the title beside the icon; on phones the button wraps under */}
+        <div className="min-w-0 grow basis-48">
           <h1 className="font-display font-bold text-lg tracking-tight text-foreground">
             Machine Learning Interview Prep
           </h1>
@@ -59,7 +60,7 @@ export function MLSection() {
         <button
           data-tour="ml-test-knowledge-general"
           onClick={() => setGeneralQuiz(true)}
-          className="ml-auto shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium border border-pink-500/25 bg-pink-500/10 text-pink-600 dark:text-pink-400 hover:bg-pink-500/20 transition-all"
+          className="sm:ml-auto shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium border border-pink-500/25 bg-pink-500/10 text-pink-600 dark:text-pink-400 hover:bg-pink-500/20 transition-all"
         >
           <MessagesSquare size={13} /> Test Your Knowledge
         </button>

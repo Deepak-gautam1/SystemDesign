@@ -9,10 +9,6 @@ const BLOCK_CMT = /\/\*[\s\S]*?\*\//g;
 const STRING    = /"(?:[^"\\]|\\.)*"/g;
 const NUMBER    = /\b\d+(?:\.\d+)?\b/g;
 
-function escapeHtml(s: string) {
-  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-}
-
 type Token = { type: string; value: string; start: number; end: number };
 
 function tokenize(code: string): Token[] {
@@ -75,21 +71,24 @@ export function CppCodeBlock({ code }: { code: string }) {
   const parts: React.ReactNode[] = [];
   let cursor = 0;
 
+  // JSX text children are escaped automatically by React on render — no
+  // manual HTML-escaping here, or "<"/">"/"&" in the source would show up
+  // literally as "&lt;"/"&gt;"/"&amp;" instead of being displayed as-is.
   for (const tok of tokens) {
     if (tok.start > cursor) {
       parts.push(
-        <span key={`plain-${cursor}`}>{escapeHtml(code.slice(cursor, tok.start))}</span>
+        <span key={`plain-${cursor}`}>{code.slice(cursor, tok.start)}</span>
       );
     }
     parts.push(
       <span key={`tok-${tok.start}`} style={{ color: COLOR[tok.type] }}>
-        {escapeHtml(tok.value)}
+        {tok.value}
       </span>
     );
     cursor = tok.end;
   }
   if (cursor < code.length) {
-    parts.push(<span key="tail">{escapeHtml(code.slice(cursor))}</span>);
+    parts.push(<span key="tail">{code.slice(cursor)}</span>);
   }
 
   return (

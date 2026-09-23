@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import {
   Building2, LayoutDashboard, Code2, Database, Brain, GitBranch, Target, BookOpen,
-  ChevronDown, PanelLeftClose, PanelLeftOpen,
+  ChevronDown, PanelLeftClose, PanelLeftOpen, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CATEGORIES, TOPICS } from "@/lib/topics";
@@ -32,6 +32,9 @@ interface SidebarProps {
   onTopicSelect: (t: Topic) => void;
   collapsed: boolean;
   onToggleCollapsed: () => void;
+  /** Below md the sidebar is hidden; this shows it as an overlay drawer. */
+  mobileOpen: boolean;
+  onMobileClose: () => void;
 }
 
 /** Hover label shown only in icon-rail (collapsed) mode */
@@ -51,9 +54,19 @@ function RailTooltip({ label }: { label: string }) {
 
 export function Sidebar({
   section, onSectionChange, activeTopic, progress, mode, onTopicSelect,
-  collapsed, onToggleCollapsed,
+  collapsed: collapsedPref, onToggleCollapsed, mobileOpen, onMobileClose,
 }: SidebarProps) {
+  // The icon-rail preference is a desktop setting — the phone drawer always
+  // shows full labels.
+  const collapsed = collapsedPref && !mobileOpen;
   const isSdActive = section === "system-design";
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onMobileClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileOpen, onMobileClose]);
 
   // Tree expand/collapse is independent of navigation — opening the section
   // auto-expands it, but the chevron can close it again without leaving the page.
@@ -63,11 +76,24 @@ export function Sidebar({
   }, [isSdActive]);
 
   return (
+    <>
+    {mobileOpen && (
+      <div
+        aria-hidden
+        onClick={onMobileClose}
+        className="fixed inset-0 z-50 bg-black/50 md:hidden animate-fade-in"
+      />
+    )}
     <aside
       className={cn(
-        "shrink-0 bg-card border-r border-border flex-col overflow-hidden hidden md:flex",
+        "shrink-0 bg-card border-r border-border flex-col overflow-hidden",
         "transition-[width] duration-200 ease-out",
-        collapsed ? "w-[64px]" : "w-52"
+        // Phones: off-canvas drawer, rendered only while open. md and up: the
+        // in-flow panel / icon rail, exactly as before.
+        mobileOpen
+          ? "flex fixed inset-y-0 left-0 z-[60] w-72 max-w-[85vw] shadow-elevated md:static md:z-auto md:shadow-none"
+          : "hidden md:flex",
+        collapsed ? "md:w-[64px]" : "md:w-52"
       )}
     >
       {/* Brand */}
@@ -99,15 +125,26 @@ export function Sidebar({
           )}
         </button>
 
-        <button
-          data-tour="sidebar-collapse"
-          onClick={onToggleCollapsed}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
-        >
-          {collapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
-        </button>
+        {mobileOpen ? (
+          <button
+            onClick={onMobileClose}
+            aria-label="Close menu"
+            title="Close menu"
+            className="flex items-center justify-center w-8 h-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+          >
+            <X size={16} />
+          </button>
+        ) : (
+          <button
+            data-tour="sidebar-collapse"
+            onClick={onToggleCollapsed}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+          >
+            {collapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+          </button>
+        )}
       </div>
 
       {/* Main nav */}
@@ -250,5 +287,6 @@ export function Sidebar({
         </div>
       </nav>
     </aside>
+    </>
   );
 }

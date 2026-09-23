@@ -115,7 +115,7 @@ export function SQLSection() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap max-w-full">
         <button
           data-tour="sql-tutor-general"
           onClick={() => setGeneralTutor(true)}
@@ -157,14 +157,14 @@ export function SQLSection() {
       ) : (
         <>
           {/* Stats row */}
-          <div className="grid grid-cols-4 gap-3 mb-6 animate-slide-up">
+          <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-6 animate-slide-up">
             {[
               { label: "Problems", value: ALL_SQL_PROBLEMS.length,                                             color: "text-primary" },
               { label: "Easy",     value: ALL_SQL_PROBLEMS.filter(p => p.difficulty === "easy").length,   color: "text-emerald-500" },
               { label: "Medium",   value: ALL_SQL_PROBLEMS.filter(p => p.difficulty === "medium").length, color: "text-amber-500" },
               { label: "Hard",     value: ALL_SQL_PROBLEMS.filter(p => p.difficulty === "hard").length,   color: "text-rose-500" },
             ].map(s => (
-              <div key={s.label} className="bg-card border border-border rounded-xl px-4 py-3 text-center">
+              <div key={s.label} className="bg-card border border-border rounded-xl px-2 sm:px-4 py-3 text-center">
                 <p className={cn("font-display font-bold text-xl", s.color)}>{s.value}</p>
                 <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">{s.label}</p>
               </div>

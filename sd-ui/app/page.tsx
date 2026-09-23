@@ -25,6 +25,7 @@ export default function HomePage() {
   const [mode, setMode]           = useState<Mode>("study");
   const [search, setSearch]       = useState("");
   const [chatTopic, setChatTopic] = useState<Topic | null>(null);
+  const [menuOpen, setMenuOpen]   = useState(false);   // phone-only sidebar drawer
 
   const { ready, needsWelcome, enterGuest, isGuest } = useGuestMode();
   const { progress, markDone, isDone, doneCount } = useProgress();
@@ -60,6 +61,7 @@ export default function HomePage() {
     if (selectedMode) setMode(selectedMode);
     setSection("system-design");
     addRecent(topic.id);
+    setMenuOpen(false);
   };
 
   const goBack = () => setChatTopic(null);
@@ -67,7 +69,18 @@ export default function HomePage() {
   const handleSectionChange = (s: AppSection) => {
     setSection(s);
     setChatTopic(null);  // clear chat when switching sections
+    setMenuOpen(false);
   };
+
+  // The drawer only exists below md. If the viewport grows past that (rotation,
+  // resizing a desktop window) the in-flow sidebar takes over, so drop the
+  // overlay instead of leaving it covering the page.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const onChange = () => { if (mq.matches) setMenuOpen(false); };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   const isInChat = section === "system-design" && chatTopic !== null;
 
@@ -130,7 +143,7 @@ export default function HomePage() {
   // Hold the first paint until the session is resolved — rendering the welcome
   // screen and then yanking it away for an already-signed-in user reads as a bug.
   if (!ready) {
-    return <div className="h-screen bg-background" />;
+    return <div className="h-dvh bg-background" />;
   }
 
   if (needsWelcome) {
@@ -138,7 +151,9 @@ export default function HomePage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    // h-dvh, not h-screen: on a phone 100vh is the height with the browser's
+    // address bar hidden, so while it's showing, the chat input sits off-screen.
+    <div className="h-dvh flex flex-col bg-background overflow-hidden">
       <Header
         section={section}
         mode={mode}
@@ -151,6 +166,7 @@ export default function HomePage() {
         showSearch={section === "system-design" && !isInChat}
         onReplayTour={contextualTour.start}
         isGuest={isGuest}
+        onOpenMenu={() => setMenuOpen(true)}
       />
 
       <div className="flex flex-1 min-h-0">
@@ -163,6 +179,8 @@ export default function HomePage() {
           onTopicSelect={openChat}
           collapsed={sidebarCollapsed}
           onToggleCollapsed={toggleSidebar}
+          mobileOpen={menuOpen}
+          onMobileClose={() => setMenuOpen(false)}
         />
 
         <main className="flex-1 min-w-0 overflow-hidden flex flex-col">

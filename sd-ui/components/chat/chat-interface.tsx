@@ -81,22 +81,24 @@ export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDon
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Topic bar */}
-      <div className="shrink-0 flex items-center gap-3 px-4 h-12 border-b border-border bg-card">
+      {/* On phones: button labels collapse to icons and the title truncates. */}
+      <div className="shrink-0 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 h-12 border-b border-border bg-card">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-xs border border-border hover:border-border/80 rounded-lg px-2.5 py-1.5 transition-colors"
+          aria-label="Back to topics"
+          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-xs border border-border hover:border-border/80 rounded-lg px-2.5 py-1.5 transition-colors shrink-0"
         >
-          <ArrowLeft size={12} /> Topics
+          <ArrowLeft size={12} /> <span className="hidden sm:inline">Topics</span>
         </button>
-        <div className="w-px h-4 bg-border" />
+        <div className="w-px h-4 bg-border shrink-0" />
 
         {/* Topic icon + name */}
-        <div className={cn("w-6 h-6 rounded-md flex items-center justify-center border", category.bg, category.border)}>
+        <div className={cn("w-6 h-6 rounded-md hidden sm:flex items-center justify-center border shrink-0", category.bg, category.border)}>
           <LucideIcon name={topic.icon} size={13} className={category.color} />
         </div>
-        <span className="font-display font-semibold text-sm text-foreground">{topic.label}</span>
+        <span className="font-display font-semibold text-sm text-foreground truncate min-w-0">{topic.label}</span>
         <span className={cn(
-          "text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold",
+          "text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold shrink-0",
           topic.difficulty === "easy"   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
           : topic.difficulty === "medium" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
           : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
@@ -104,8 +106,9 @@ export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDon
           {topic.difficulty}
         </span>
 
-        <div className="ml-auto flex items-center gap-2">
-          <span className={cn("text-[11px] font-mono font-semibold px-2.5 py-1 rounded-full border", MODE_CLASSES[mode])}>
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          {/* Hidden on phones — the header's mode tabs already show it. */}
+          <span className={cn("hidden sm:inline text-[11px] font-mono font-semibold px-2.5 py-1 rounded-full border", MODE_CLASSES[mode])}>
             {MODE_LABELS[mode]}
           </span>
 
@@ -129,7 +132,8 @@ export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDon
             confirmDelete ? (
               <div className="flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-lg border border-rose-500/30 bg-rose-500/5">
                 <span className="text-[11px] text-rose-600 dark:text-rose-400">
-                  Delete {signedIn ? "saved history" : "this chat"} permanently?
+                  <span className="sm:hidden">Sure?</span>
+                  <span className="hidden sm:inline">Delete {signedIn ? "saved history" : "this chat"} permanently?</span>
                 </span>
                 <button
                   onClick={async () => { await deleteEverything(); setConfirmDelete(false); }}
@@ -163,6 +167,7 @@ export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDon
           <button
             data-tour="mark-done"
             onClick={() => onMarkDone(topic.id)}
+            aria-label={isDone ? "Done" : "Mark done"}
             className={cn(
               "flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-all",
               isDone
@@ -171,7 +176,7 @@ export function ChatInterface({ topic, category, mode, onBack, onMarkDone, isDon
             )}
           >
             <CheckCircle2 size={12} />
-            {isDone ? "Done!" : "Mark done"}
+            <span className="hidden sm:inline">{isDone ? "Done!" : "Mark done"}</span>
           </button>
         </div>
       </div>

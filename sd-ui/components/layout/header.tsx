@@ -2,7 +2,7 @@
 import { useState } from "react";
 import {
   Search, BookOpen, Target, Microscope, ChevronRight, HelpCircle,
-  LayoutDashboard, Building2, Code2, Database, Brain, GitBranch, LogIn, LogOut, UserRound,
+  LayoutDashboard, Building2, Code2, Database, Brain, GitBranch, LogIn, LogOut, UserRound, Menu,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -47,13 +47,15 @@ interface HeaderProps {
   showSearch?:    boolean;
   onReplayTour?:  () => void;
   isGuest?:       boolean;
+  /** Opens the sidebar drawer — the only navigation on phones. */
+  onOpenMenu?:    () => void;
 }
 
 export function Header({
   section, mode, onModeChange,
   doneCount, total, activeTopic,
   search, onSearchChange, showSearch,
-  onReplayTour, isGuest,
+  onReplayTour, isGuest, onOpenMenu,
 }: HeaderProps) {
   const inSystemDesign = section === "system-design";
   const meta = SECTION_META[section];
@@ -70,19 +72,33 @@ export function Header({
 
   return (
     <header className={cn(
-      "h-14 shrink-0 flex items-center gap-3 px-4 sticky top-0 z-40",
+      "h-14 shrink-0 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 sticky top-0 z-40",
       "bg-card/80 backdrop-blur-md border-b border-border",
     )}>
 
+      {/* ── Menu — phones only, where the sidebar is hidden ───────────── */}
+      {onOpenMenu && (
+        <button
+          onClick={onOpenMenu}
+          aria-label="Open menu"
+          title="Menu"
+          className="md:hidden flex items-center justify-center w-8 h-8 -ml-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+        >
+          <Menu size={18} />
+        </button>
+      )}
+
       {/* ── Page title / breadcrumb — the one place "where am I" lives ── */}
-      <div data-tour="header-crumb" className="flex items-center gap-2 min-w-0 shrink-0">
+      {/* Shrinkable on phones so a long topic name truncates instead of
+          pushing the controls off-screen; the section name gives way first. */}
+      <div data-tour="header-crumb" className="flex items-center gap-2 min-w-0 md:shrink-0">
         <SectionIcon size={15} className={cn("shrink-0", meta.color)} />
-        <span className={cn("text-[13px] font-semibold truncate", meta.color)}>
+        <span className={cn("text-[13px] font-semibold truncate", meta.color, activeTopic && "hidden sm:inline")}>
           {meta.label}
         </span>
         {activeTopic && (
           <>
-            <ChevronRight size={12} className="text-muted-foreground/40 shrink-0" />
+            <ChevronRight size={12} className="text-muted-foreground/40 shrink-0 hidden sm:block" />
             <span className="text-[13px] font-medium text-foreground/80 truncate max-w-[220px]">
               {activeTopic.label}
             </span>
@@ -115,7 +131,7 @@ export function Header({
               key={id}
               onClick={() => onModeChange(id)}
               className={cn(
-                "flex items-center gap-1.5 px-3 h-7 rounded-lg text-[12px] font-medium transition-all duration-150",
+                "flex items-center gap-1.5 px-2 sm:px-3 h-7 rounded-lg text-[12px] font-medium transition-all duration-150",
                 mode === id
                   ? MODE_ACTIVE[id]
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
