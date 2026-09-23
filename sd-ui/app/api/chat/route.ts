@@ -24,11 +24,20 @@ export async function POST(req: NextRequest) {
   // (missing AUTH_SECRET/Google credentials) so chat keeps working for guests.
   const userId = await auth().then(s => s?.user?.id).catch(() => undefined);
 
-  const backendRes = await fetch(`${BACKEND}/api/chat`, {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ query, mode, history, topic: topic ?? "" }),
-  });
+  let backendRes: Response;
+  try {
+    backendRes = await fetch(`${BACKEND}/api/chat`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ query, mode, history, topic: topic ?? "" }),
+    });
+  } catch {
+    // Surfaces in the chat as "Connection error: <detail>" instead of a bare HTTP 500.
+    return Response.json(
+      { detail: `Backend not reachable at ${BACKEND} — is \`python server.py\` running?` },
+      { status: 502 }
+    );
+  }
 
   if (!backendRes.ok || !backendRes.body) {
     return new Response(backendRes.body, { status: backendRes.status });
@@ -46,7 +55,7 @@ export async function POST(req: NextRequest) {
       const { done, value } = await reader.read();
       if (done) {
         controller.close();
-        if (userId && topicId) {
+        if (userId && topicId && fullText) {
           try {
             await appendExchange(userId, topicId, mode, query, fullText, sources, attemptId);
           } catch (err) {

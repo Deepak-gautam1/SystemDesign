@@ -16,8 +16,15 @@ export async function GET(req: NextRequest) {
   const attemptId = raw && raw.trim() ? raw : undefined;
   if (!topicId || !mode) return NextResponse.json({ messages: [], attemptId: null });
 
-  const { messages, attemptId: loaded } = await loadHistory(userId, topicId, mode, attemptId);
-  return NextResponse.json({ messages, attemptId: loaded });
+  // A database outage must not break the page — fall back to "nothing saved"
+  // and let the client keep working off sessionStorage.
+  try {
+    const { messages, attemptId: loaded } = await loadHistory(userId, topicId, mode, attemptId);
+    return NextResponse.json({ messages, attemptId: loaded });
+  } catch (err) {
+    console.error("history load failed:", err);
+    return NextResponse.json({ messages: [], attemptId: attemptId ?? null });
+  }
 }
 
 // Permanent delete — removes every saved attempt for this topic+mode. Scoped

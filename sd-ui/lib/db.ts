@@ -57,7 +57,12 @@ function ensureSchema(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS idx_conversations_lookup
         ON conversations(user_id, topic_id, mode, updated_at DESC);
-    `).then(() => {});
+    `).then(() => {}, err => {
+      // Don't cache the failure — a paused/unreachable database would
+      // otherwise keep every later request failing until the server restarts.
+      schemaReady = null;
+      throw err;
+    });
   }
   return schemaReady;
 }
