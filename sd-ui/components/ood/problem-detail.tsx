@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { marked } from "marked";
 import { cn } from "@/lib/utils";
+import { wrapTables } from "@/lib/render-markdown";
 import { CppCodeBlock } from "./code-block";
 import { DifficultyBadge, TagBadge } from "@/components/ui/badge";
 import { evaluateCode } from "@/lib/api";
@@ -106,7 +107,7 @@ function EvalPanel({
             <div
               className="prose-chat text-slate-200 leading-relaxed"
               dangerouslySetInnerHTML={{
-                __html: (marked.parse(result) as string) +
+                __html: wrapTables(marked.parse(result) as string) +
                   (loading ? '<span class="inline-block w-[2px] h-3.5 bg-violet-400 ml-0.5 align-middle rounded-sm animate-pulse"></span>' : "")
               }}
             />

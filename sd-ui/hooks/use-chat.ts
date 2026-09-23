@@ -22,6 +22,14 @@ export function useChat(mode: string, topicId: string, topicContext?: string) {
   // a not-yet-hydrated (empty) state can't overwrite a stored conversation.
   const hydratedKey = useRef<string | null>(null);
 
+  // What the load effect just handed to setMessages, until a render shows it.
+  // hydratedKey alone isn't enough: the save effect runs in the same commit as
+  // the load, while `messages` is still the pre-load value — [] on mount, or
+  // the previous topic's thread on a switch — and would write that over the
+  // conversation just loaded. React StrictMode's double-run in dev then reloads
+  // the overwritten copy, so the chat was lost for real.
+  const pendingLoad = useRef<Message[] | null>(null);
+
   // Load the conversation for this topic+mode: sessionStorage first (instant,
   // works for everyone), then — if signed in — overlay whatever's saved in
   // Postgres, which is the durable copy.
@@ -35,7 +43,9 @@ export function useChat(mode: string, topicId: string, topicContext?: string) {
     const stored = loadChatSession(key);
     historyRef.current = stored?.history ?? [];
     attemptRef.current = getAttemptId(key) ?? "";
-    setMessages(stored?.messages ?? []);
+    const loaded = stored?.messages ?? [];
+    pendingLoad.current = loaded;
+    setMessages(loaded);
     hydratedKey.current = key;
 
     if (status === "authenticated") {
@@ -55,6 +65,7 @@ export function useChat(mode: string, topicId: string, topicContext?: string) {
             setAttemptId(key, data.attemptId);
           }
           if (!data.messages?.length) return;
+          pendingLoad.current = data.messages;   // a load too — saved once rendered
           setMessages(data.messages);
           historyRef.current = data.messages.map(m => ({ role: m.role, content: m.content }));
         })
@@ -67,6 +78,8 @@ export function useChat(mode: string, topicId: string, topicContext?: string) {
   // keeps writes to once per completed exchange instead of once per token.
   useEffect(() => {
     if (streaming || hydratedKey.current !== key) return;
+    if (pendingLoad.current && messages !== pendingLoad.current) return;  // stale, pre-load state
+    pendingLoad.current = null;
     saveChatSession(key, messages, historyRef.current);
   }, [messages, streaming, key]);
 

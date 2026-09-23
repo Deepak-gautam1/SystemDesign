@@ -102,6 +102,8 @@
   .mode-deep  { @apply bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/25; }
 
   /* Chat bubble markdown */
+  /* A long URL or identifier breaks instead of spilling out of its bubble. */
+  .prose-chat { overflow-wrap: anywhere; }
   .prose-chat h1,.prose-chat h2,.prose-chat h3 {
     @apply font-display font-bold uppercase tracking-widest text-[11px] text-foreground mt-4 mb-2 pb-2 border-b border-border;
   }
@@ -116,10 +118,17 @@
   .prose-chat pre code { @apply bg-transparent text-foreground p-0; }
   .prose-chat blockquote { @apply border-l-2 border-primary/40 pl-3 text-muted-foreground my-2 italic; }
   .prose-chat hr   { @apply border-t border-border my-3; }
-  .prose-chat table { @apply w-full text-sm border-collapse my-2; }
+  /* Wide tables scroll sideways inside this wrapper (added by wrapTables()). */
+  .prose-chat .table-scroll { @apply overflow-x-auto my-2; }
+  .prose-chat table { @apply w-full text-sm border-collapse; }
   .prose-chat th { @apply font-mono text-[10px] uppercase tracking-wider bg-muted text-muted-foreground p-2 text-left; }
   .prose-chat td { @apply p-2 border-b border-border; }
   .prose-chat tr:last-child td { @apply border-0; }
+  /* ...but words stay whole in cells: breaking them there would crush columns
+     down to a letter wide, so the wrapper's scroll takes the overflow instead. */
+  .prose-chat th,.prose-chat td { overflow-wrap: normal; }
+  /* A long display equation scrolls sideways rather than overflowing. */
+  .prose-chat .katex-display { @apply overflow-x-auto overflow-y-hidden py-1; }
 
   /* Animations */
   .animate-fade-in    { animation: fade-in 0.4s ease-out; }

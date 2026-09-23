@@ -54,7 +54,7 @@ function UserMessage({ msg }: { msg: Message }) {
   return (
     <div className="flex gap-2.5 flex-row-reverse animate-slide-up">
       <UserAvatar />
-      <div className="max-w-[min(70%,700px)] bg-primary/10 border border-primary/20 rounded-xl rounded-tr-sm px-4 py-3 text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+      <div className="max-w-[min(70%,700px)] bg-primary/10 border border-primary/20 rounded-xl rounded-tr-sm px-4 py-3 text-sm text-foreground whitespace-pre-wrap [overflow-wrap:anywhere] leading-relaxed">
         {msg.content}
       </div>
     </div>

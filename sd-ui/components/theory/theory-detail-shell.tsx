@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen, Brain, Check } from "lucide-react";
 import { marked } from "marked";
 import { cn } from "@/lib/utils";
+import { wrapTables } from "@/lib/render-markdown";
 import { useTheoryProgress } from "@/hooks/use-theory-progress";
 import { TopicTutorChat, type TutorSubject } from "./topic-tutor-chat";
 import type { TheoryCategory, TheoryTopic } from "@/lib/types";
@@ -66,7 +67,7 @@ export function TheoryDetailShell({
   // gets a permanently blank page.
   useEffect(() => {
     if (proseRef.current) {
-      proseRef.current.innerHTML = marked.parse(topic.content) as string;
+      proseRef.current.innerHTML = wrapTables(marked.parse(topic.content) as string);
     }
     scrollRef.current?.scrollTo({ top: 0 });
     splitRef.current?.scrollTo({ top: 0 });

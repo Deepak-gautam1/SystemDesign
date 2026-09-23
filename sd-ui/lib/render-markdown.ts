@@ -45,6 +45,16 @@ function renderTex(tex: string, display: boolean): string {
   }
 }
 
+// A table can't shrink below its longest words, so a wide one (a five-column
+// comparison is routine in these answers) spills out of its container on a
+// phone. Each table gets a horizontal scroller around it instead — styled as
+// `.prose-chat .table-scroll` in globals.css.
+export function wrapTables(html: string): string {
+  return html
+    .replace(/<table>/g, '<div class="table-scroll"><table>')
+    .replace(/<\/table>/g, "</table></div>");
+}
+
 export function renderMarkdownWithMath(source: string): string {
   const slots: string[] = [];
   let working = source;
@@ -60,5 +70,5 @@ export function renderMarkdownWithMath(source: string): string {
   // marked may wrap a placeholder in a <p> or leave it inline — either way
   // it passes through untouched (no markdown-special characters in it), so a
   // plain string substitution is enough to drop the real KaTeX HTML back in.
-  return html.replace(/@@MATHSLOT(\d+)@@/g, (_match, i: string) => slots[Number(i)] ?? "");
+  return wrapTables(html).replace(/@@MATHSLOT(\d+)@@/g, (_match, i: string) => slots[Number(i)] ?? "");
 }
