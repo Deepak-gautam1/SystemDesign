@@ -1,7 +1,7 @@
 export type Difficulty = "easy" | "medium" | "hard";
 export type Mode = "study" | "quiz" | "deep_dive";
 export type CategoryId = "fund" | "stor" | "core" | "infra" | "adv";
-export type AppSection = "dashboard" | "system-design" | "ood" | "sql" | "ml" | "dsa" | "practice" | "guides";
+export type AppSection = "dashboard" | "system-design" | "ood" | "sql" | "ml" | "ai" | "dsa" | "practice" | "guides";
 
 export interface Topic {
   id: string;
@@ -72,8 +72,27 @@ export interface TheoryTopic {
   // ML topics have no code panel, so they DO use single-backtick inline spans for
   // formulas and identifiers — escaped as \` since content is a template literal.
   content: string;
-  code?: string;        // optional C++/SQL snippet or ASCII diagram, rendered in a side panel
+  code?: string;        // optional C++/SQL/Python snippet or ASCII diagram, rendered in a side panel
   codeLabel?: string;   // small filename/label shown above the code panel, e.g. "singleton.cpp"
+  // Further reading shown under the prose as "Go deeper". Kept out of `content`
+  // so the links stay structured (kind badge, source, year) and so the tutor,
+  // which is handed `content`, isn't fed a list of URLs as "notes".
+  resources?: TheoryResource[];
+}
+
+// ── Curated external resources (Agentic AI "Go deeper" lists + library) ──
+
+export type ResourceKind = "guide" | "paper" | "course" | "video" | "book" | "docs" | "repo" | "blog";
+
+export interface TheoryResource {
+  title: string;
+  url: string;
+  kind: ResourceKind;
+  source: string;        // author or organisation, e.g. "Anthropic", "Yao et al."
+  year?: number;
+  note: string;          // one line on why it's worth the time
+  essential?: boolean;   // part of the short "start here" list
+  paid?: boolean;        // books and courses that cost money
 }
 
 export interface TheoryCategory {

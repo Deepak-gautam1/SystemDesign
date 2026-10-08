@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 import { useTheoryProgress } from "@/hooks/use-theory-progress";
 import type { TheoryCategory, TheoryTopic } from "@/lib/types";
 
-// Shared browser for all three theory curricula (OOD, SQL, ML). Those three
-// grids were byte-for-byte identical apart from their data source, and each new
-// affordance — search, progress, filters — would otherwise have to be written
-// (and kept in sync) three times.
+// Shared browser for every theory curriculum (OOD, SQL, ML, AI). The original
+// three grids were byte-for-byte identical apart from their data source, and
+// each new affordance — search, progress, filters — would otherwise have to be
+// written (and kept in sync) once per section.
 
 function LucideIcon({ name, size = 16, className }: { name: string; size?: number; className?: string }) {
   const I = (Icons as unknown as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[name];
@@ -25,7 +25,7 @@ const FILTERS: { id: Filter; label: string }[] = [
 ];
 
 interface TheoryBrowserProps {
-  /** localStorage scope for progress — "ml" | "sql" | "ood". Must stay stable. */
+  /** localStorage scope for progress — "ml" | "ai" | "sql" | "ood". Must stay stable. */
   namespace: string;
   categories: TheoryCategory[];
   /** Prefix for the per-category DOM ids the jump nav scrolls to. */

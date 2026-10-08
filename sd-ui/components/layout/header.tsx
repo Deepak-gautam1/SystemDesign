@@ -2,7 +2,7 @@
 import { useState } from "react";
 import {
   Search, BookOpen, Target, Microscope, ChevronRight, HelpCircle,
-  LayoutDashboard, Building2, Code2, Database, Brain, GitBranch, LogIn, LogOut, UserRound, Menu,
+  LayoutDashboard, Building2, Code2, Database, Brain, Sparkles, GitBranch, LogIn, LogOut, UserRound, Menu,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -25,14 +25,15 @@ const MODE_ACTIVE: Record<Mode, string> = {
 
 // Single source of truth for "what page am I on" — icon, label, accent color
 const SECTION_META: Record<AppSection, { label: string; Icon: LucideIcon; color: string }> = {
-  "dashboard":     { label: "Dashboard",              Icon: LayoutDashboard, color: "text-foreground" },
-  "system-design": { label: "System Design",          Icon: Building2,       color: "text-primary" },
-  "ood":           { label: "Object Oriented Design", Icon: Code2,           color: "text-violet-500 dark:text-violet-400" },
-  "sql":           { label: "SQL",                    Icon: Database,        color: "text-sky-500 dark:text-sky-400" },
-  "ml":            { label: "Machine Learning",       Icon: Brain,           color: "text-pink-500 dark:text-pink-400" },
-  "dsa":           { label: "DS & Algorithms",        Icon: GitBranch,       color: "text-amber-500 dark:text-amber-400" },
-  "practice":      { label: "Practice",               Icon: Target,          color: "text-muted-foreground" },
-  "guides":        { label: "Study Guides",           Icon: BookOpen,        color: "text-muted-foreground" },
+  "dashboard":     { label: "Dashboard",               Icon: LayoutDashboard, color: "text-foreground" },
+  "system-design": { label: "System Design",           Icon: Building2,       color: "text-primary" },
+  "ood":           { label: "Object Oriented Design",  Icon: Code2,           color: "text-violet-500 dark:text-violet-400" },
+  "sql":           { label: "SQL",                     Icon: Database,        color: "text-sky-500 dark:text-sky-400" },
+  "ml":            { label: "Machine Learning",        Icon: Brain,           color: "text-pink-500 dark:text-pink-400" },
+  "ai":            { label: "Artificial Intelligence", Icon: Sparkles,        color: "text-orange-500 dark:text-orange-400" },
+  "dsa":           { label: "DS & Algorithms",         Icon: GitBranch,       color: "text-amber-500 dark:text-amber-400" },
+  "practice":      { label: "Practice",                Icon: Target,          color: "text-muted-foreground" },
+  "guides":        { label: "Study Guides",            Icon: BookOpen,        color: "text-muted-foreground" },
 };
 
 interface HeaderProps {

@@ -1,13 +1,13 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Send, Eraser, Mic, Square, Brain, MessageCircleQuestion, Database, Code2 } from "lucide-react";
+import { ArrowLeft, Send, Eraser, Mic, Square, Brain, MessageCircleQuestion, Database, Code2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "@/components/chat/message-bubble";
 import { useSpeechToText } from "@/hooks/use-speech-to-text";
 import { streamTopicChat } from "@/lib/api";
 import type { Message } from "@/lib/types";
 
-// Topic-scoped tutor, shared by ML, SQL and OOD. Started life as ML-only
+// Topic-scoped tutor, shared by ML, AI, SQL and OOD. Started life as ML-only
 // (ml-quiz-chat.tsx) — generalising it was the whole point, since "conversation
 // about the thing you're reading" isn't an ML-specific affordance.
 //
@@ -17,7 +17,7 @@ import type { Message } from "@/lib/types";
 // Mixing them produces a tutor that hands over the answer the moment you push
 // back, which defeats the point of practising retrieval under pressure.
 
-export type TutorSubject = "ml" | "sql" | "ood";
+export type TutorSubject = "ml" | "ai" | "sql" | "ood";
 type TutorMode = "interview" | "ask";
 
 interface SubjectStyle {
@@ -50,6 +50,20 @@ const SUBJECTS: Record<TutorSubject, SubjectStyle> = {
     send: "bg-pink-500 hover:bg-pink-600",
     focus: "focus-within:border-pink-500/40",
     pill: "hover:bg-pink-500/10 hover:border-pink-500/25 hover:text-pink-500",
+  },
+  ai: {
+    label: "AI",
+    generalTitle: "General AI Interview",
+    generalBlurb:
+      "a general AI interview across the whole syllabus — LLM internals, training and fine-tuning, inference and serving, RAG, multimodal models, and agents",
+    Icon: Sparkles,
+    text: "text-orange-500",
+    chip: "bg-orange-500/10 border-orange-500/25",
+    gradient: "from-orange-500/20 to-amber-500/20",
+    avatarRing: "border-orange-500/30 ring-orange-500/10",
+    send: "bg-orange-500 hover:bg-orange-600",
+    focus: "focus-within:border-orange-500/40",
+    pill: "hover:bg-orange-500/10 hover:border-orange-500/25 hover:text-orange-500",
   },
   sql: {
     label: "SQL",
