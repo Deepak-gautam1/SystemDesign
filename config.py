@@ -24,7 +24,21 @@ for _stream in (sys.stdout, sys.stderr):
         # are already UTF-8 or discard output, so there's nothing to fix.
         pass
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# ── OS certificate store ──────────────────────────────────────────────────────
+# On a corporate network that inspects TLS, every HTTPS call (Groq, Gemini,
+# the fastembed model download from Hugging Face) fails with
+# CERTIFICATE_VERIFY_FAILED "self-signed certificate in certificate chain":
+# the proxy re-signs traffic with a company root CA that lives in the Windows
+# certificate store but not in certifi's bundle. truststore makes the ssl
+# module verify against the OS store instead. It's optional — Render/Railway
+# don't need it, so a missing package is a no-op rather than an import error.
+try:
+    import truststore
+    truststore.inject_into_ssl()
+except ImportError:
+    pass
+
+BASE_DIR =os.path.dirname(os.path.abspath(__file__))
 
 # ── .env, loaded here rather than by each caller ──────────────────────────────
 # Every setting below is read from the environment at import time, so .env has
