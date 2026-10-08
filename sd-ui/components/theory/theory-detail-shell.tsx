@@ -10,10 +10,10 @@ import type { TheoryCategory, TheoryTopic } from "@/lib/types";
 
 marked.setOptions({ breaks: true, gfm: true });
 
-// Shared reading view behind OOD's TheoryDetail, SQL's SqlTheoryDetail and ML's
-// MlTheoryDetail. Those three were identical apart from which syntax highlighter
-// rendered the optional code panel, so the per-topic tutor and the mark-done
-// control live here once instead of in three places.
+// Shared reading view behind OOD's TheoryDetail, SQL's SqlTheoryDetail, ML's
+// MlTheoryDetail and AI's AiTheoryDetail. They were identical apart from which
+// syntax highlighter rendered the optional code panel, so the per-topic tutor
+// and the mark-done control live here once instead of in every section.
 
 type PanelTab = "theory" | "tutor";
 

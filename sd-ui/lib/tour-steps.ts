@@ -19,7 +19,7 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
     target: "sidebar-nav",
     title: "Switch sections here",
-    body: "System Design, Object-Oriented Design, SQL, Machine Learning, and more (some still coming soon) all live in this sidebar.",
+    body: "System Design, Object-Oriented Design, SQL, Machine Learning, Artificial Intelligence, and more (some still coming soon) all live in this sidebar.",
     placement: "right",
   },
   {
@@ -138,6 +138,22 @@ export const ML_TOUR_STEPS: TourStep[] = [
     target: "ml-test-knowledge-general",
     title: "Test your knowledge",
     body: "Get quizzed like a real ML interviewer across the whole syllabus — it asks a question, pushes back with Socratic follow-ups instead of handing you the answer, and debriefs with a score after a few exchanges. Open any topic and hit “Test Knowledge” there instead to drill just that one concept.",
+    placement: "bottom",
+  },
+];
+
+// ── AI section — first time you open Artificial Intelligence ───────────────
+export const AI_TOUR_STEPS: TourStep[] = [
+  {
+    target: "ai-theory-grid",
+    title: "Browse AI theory by category",
+    body: "Topics run from how LLMs work inside — tokenization, training, fine-tuning, inference — through retrieval and RAG to building agents. Click any topic to read it and use Prev/Next to work through a whole category. The agent topics come with runnable Python beside the notes.",
+    placement: "top",
+  },
+  {
+    target: "ai-test-knowledge-general",
+    title: "Test your knowledge",
+    body: "Get quizzed like a real AI engineering interviewer across the whole syllabus — one question at a time, Socratic follow-ups instead of the answer, and a scored debrief after a few exchanges. Open any topic and hit “Tutor” there to drill just that one.",
     placement: "bottom",
   },
 ];

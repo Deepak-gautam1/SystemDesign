@@ -4,12 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 // ── Theory-topic progress ────────────────────────────────────────────────────
 // Separate from use-progress.ts (which tracks system-design *chat* topics under
 // "sd_progress" and stores a richer TopicProgress record). Theory topics only
-// ever need a boolean, and there are ~150 of them across three curricula, so
+// ever need a boolean, and there are ~180 of them across four curricula, so
 // this keeps a flat "namespace:topicId" -> true map.
 //
-// The namespace matters: SQL, OOD and ML topic ids are only unique within their
-// own curriculum, so an unnamespaced key would let e.g. a shared slug in two
-// sections tick each other off.
+// The namespace matters: SQL, OOD, ML and AI topic ids are only unique within
+// their own curriculum, so an unnamespaced key would let e.g. a shared slug in
+// two sections tick each other off.
 //
 // Why a module-level store instead of plain useState: the topic grid and the
 // topic detail view are sibling branches of the tree, and both need to read and

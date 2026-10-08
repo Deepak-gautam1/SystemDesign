@@ -1,6 +1,6 @@
 # 🏗️ archprep — Interview Prep Study Bot
 
-A personal, RAG-powered interview prep platform covering **System Design, Object-Oriented Design, SQL, and Machine Learning**. System Design chat is grounded in Alex Xu's *System Design Interview* books (Parts 1 & 2), your own notes, and open-source system-design repos; OOD/SQL/ML are hand-written theory curricula with their own AI tutor.
+A personal, RAG-powered interview prep platform covering **System Design, Object-Oriented Design, SQL, Machine Learning, and Artificial Intelligence**. System Design chat is grounded in Alex Xu's *System Design Interview* books (Parts 1 & 2), your own notes, and open-source system-design repos; OOD/SQL/ML/AI are hand-written theory curricula with their own AI tutor.
 
 ---
 
@@ -12,10 +12,11 @@ A personal, RAG-powered interview prep platform covering **System Design, Object
 | 🧩 **Object-Oriented Design** | 46 theory topics (8 categories) + 11 practice problems, C++ | Per-topic **Tutor** (Interview + Ask) · code-review practice |
 | 🗄️ **SQL** | 40 theory topics (8 categories) + 24 practice problems, PostgreSQL | Per-topic **Tutor** (Interview + Ask) · code-review practice |
 | 🧠 **Machine Learning** | 70 theory topics (15 categories), theory only | Per-topic **Tutor** (Interview + Ask), no coding |
+| 🤖 **Artificial Intelligence** | 26 theory topics (7 categories) — LLM internals, training, fine-tuning, inference, multimodal models, RAG, agents | Per-topic **Tutor** (Interview + Ask) · runnable Python for the agent topics |
 
-Every theory topic across OOD/SQL/ML also gets: full-text **search**, **progress tracking** (mark done, per-category counters, All/To do/Done filters), and a general (not-topic-scoped) tutor covering the whole curriculum.
+Every theory topic across OOD/SQL/ML/AI also gets: full-text **search**, **progress tracking** (mark done, per-category counters, All/To do/Done filters), and a general (not-topic-scoped) tutor covering the whole curriculum.
 
-System Design chat answers reference exact **source + page number** with a similarity score. OOD/SQL/ML tutor answers can include real math (`\( \)`, `\[ \]`, `$$ $$` LaTeX), rendered with KaTeX rather than shown as raw text.
+System Design chat answers reference exact **source + page number** with a similarity score. OOD/SQL/ML/AI tutor answers can include real math (`\( \)`, `\[ \]`, `$$ $$` LaTeX), rendered with KaTeX rather than shown as raw text.
 
 ---
 
@@ -34,14 +35,14 @@ Sources
   server.py            ← FastAPI backend (run every time)
   ├── RAGEngine (rag.py): embed query (Gemini or local, matches EMBED_BACKEND)
   ├── POST /api/chat        → book-grounded System Design chat (retrieves from ChromaDB)
-  ├── POST /api/topic-chat  → OOD/SQL/ML tutor — client supplies the topic's own
+  ├── POST /api/topic-chat  → OOD/SQL/ML/AI tutor — client supplies the topic's own
   │                            notes as context, no ChromaDB retrieval needed
   ├── POST /api/evaluate    → code-quality review for OOD/SQL practice problems
   ├── generate: Groq (primary) → Gemini (fallback)
   └── stream every response over SSE
        │
        ├── frontend/index.html   ← minimal built-in UI, System Design only, served by server.py at :8000
-       └── sd-ui/                ← full Next.js app at :3000 — all four sections, auth, themes
+       └── sd-ui/                ← full Next.js app at :3000 — all five sections, auth, themes
 ```
 
 `app.py` (Streamlit) is an earlier prototype kept for reference — it is **not** the active app; use `server.py` + `sd-ui`.
@@ -95,7 +96,7 @@ python ingest_local.py
 - Writes to a **separate** ChromaDB collection (`system_design_local`) — never mixed with the Gemini-embedded vectors, since different embedding models produce incompatible vector spaces.
 - After it finishes, set `EMBED_BACKEND=local` in `.env` so `server.py` queries the local collection with the same local model at query time.
 
-This step only feeds the **System Design** section — OOD/SQL/ML theory content is hand-written and ships in `sd-ui/lib/`, not ingested.
+This step only feeds the **System Design** section — OOD/SQL/ML/AI theory content is hand-written and ships in `sd-ui/lib/`, not ingested.
 
 ### 6. Launch the backend
 ```bash
@@ -128,7 +129,7 @@ Three modes, switched from the header:
 
 Every response retrieves the top-K most relevant chunks from ChromaDB first, then generates grounded in them — this is the only section backed by real retrieval.
 
-### OOD / SQL / ML — theory + per-topic Tutor
+### OOD / SQL / ML / AI — theory + per-topic Tutor
 Each theory topic has a **Tutor** with two modes (kept as separate transcripts, so switching mid-conversation doesn't lose either thread):
 
 - **Interview** — Socratic: exactly one question per turn, never gives the answer directly, reacts to what you actually said, debriefs only after ≥3 answered questions. Enforced two ways — a tight system prompt, *and* a server-side guardrail that truncates the stream at the first `?` as defense-in-depth against the model front-loading multiple questions.
@@ -136,7 +137,7 @@ Each theory topic has a **Tutor** with two modes (kept as separate transcripts, 
 
 A **general tutor** (the "Test Your Knowledge" button in each section header) runs the same two modes across the whole curriculum instead of one topic, using a compact category→title digest so it knows the full syllabus without the full text of every topic in context.
 
-**Progress & search**: every grid has a search box (title *and* body text — press `/` to focus), an All/To do/Done filter, and a done/total progress bar with per-category counts. Progress is namespaced per section in `localStorage` (`ml:`, `sql:`, `ood:`), so resetting one section's progress never touches another's.
+**Progress & search**: every grid has a search box (title *and* body text — press `/` to focus), an All/To do/Done filter, and a done/total progress bar with per-category counts. Progress is namespaced per section in `localStorage` (`ml:`, `ai:`, `sql:`, `ood:`), so resetting one section's progress never touches another's.
 
 **Math rendering**: tutor answers render `\( ... \)`, `\[ ... \]`, and `$$ ... $$` as real math via KaTeX. A lone `$ ... $` is intentionally **not** treated as math — this app's own content discusses real dollar amounts ("$50/month"), and that delimiter would misfire on them constantly.
 
@@ -172,15 +173,15 @@ SystemDesign/
 │   ├── app/                    ← Routes, layout, global styles (incl. KaTeX CSS import)
 │   ├── components/
 │   │   ├── chat/                ← System Design chat UI (message-bubble.tsx does math+markdown render)
-│   │   ├── theory/               ← Shared across OOD/SQL/ML: theory-browser (search/progress/filters),
+│   │   ├── theory/               ← Shared across OOD/SQL/ML/AI: theory-browser (search/progress/filters),
 │   │   │                           theory-detail-shell (prose + code panel + Mark done + Tutor button),
 │   │   │                           topic-tutor-chat (Interview/Ask modes)
-│   │   ├── ood/ · sql/ · ml/     ← Thin per-section wrappers around the shared theory/ components
+│   │   ├── ood/ · sql/ · ml/ · ai/ ← Thin per-section wrappers around the shared theory/ components
 │   │   └── layout/               ← Header (auth, theme toggle), sidebar
 │   ├── hooks/
-│   │   └── use-theory-progress.ts ← Namespaced localStorage progress store, shared by all three sections
+│   │   └── use-theory-progress.ts ← Namespaced localStorage progress store, shared by all four theory sections
 │   ├── lib/
-│   │   ├── theory.ts · sql-theory.ts · ml-theory.ts  ← Category/topic definitions + aggregation
+│   │   ├── theory.ts · sql-theory.ts · ml-theory.ts · ai-theory.ts ← Category/topic definitions + aggregation
 │   │   ├── render-markdown.ts    ← marked + KaTeX: extracts \( \)/\[ \]/$$ $$ before marked
 │   │   │                            can mangle them, renders math, splices it back in
 │   │   ├── auth.ts               ← NextAuth config (Google provider only)
@@ -233,7 +234,7 @@ It sets `--skip-worktree` on `db/chroma.sqlite3` — still tracked, still deploy
 → Make sure `.env` exists (not `.env.example`) and has at least one key, OR set `EMBED_BACKEND=local` to skip Gemini for embeddings entirely.
 
 **`Vector database not found` / RAG in degraded mode**
-→ Run `python ingest.py` or `python ingest_local.py` to completion first. This only affects System Design chat — OOD/SQL/ML theory pages don't need it.
+→ Run `python ingest.py` or `python ingest_local.py` to completion first. This only affects System Design chat — OOD/SQL/ML/AI theory pages don't need it.
 
 **All API keys hit their daily quota during `ingest.py`**
 → Expected on the free tier (1,000/day/key). Progress is saved — just rerun `python ingest.py` after the reset. Add more `GEMINI_API_KEY_N` entries to `.env` to raise the daily ceiling, or switch to `python ingest_local.py` to remove the quota dependency entirely.

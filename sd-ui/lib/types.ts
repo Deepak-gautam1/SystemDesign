@@ -1,7 +1,7 @@
 export type Difficulty = "easy" | "medium" | "hard";
 export type Mode = "study" | "quiz" | "deep_dive";
 export type CategoryId = "fund" | "stor" | "core" | "infra" | "adv";
-export type AppSection = "dashboard" | "system-design" | "ood" | "sql" | "ml" | "agentic" | "dsa" | "practice" | "guides";
+export type AppSection = "dashboard" | "system-design" | "ood" | "sql" | "ml" | "ai" | "dsa" | "practice" | "guides";
 
 export interface Topic {
   id: string;
